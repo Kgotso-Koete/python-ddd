@@ -18,5 +18,5 @@ def map_listing_model_to_dao(instance: ListingModel):
     return ListingDAO(
         id=instance.id,
         ends_at=data["ends_at"],
-        bids=[],
+        bids=data.get("bids", []),
     )

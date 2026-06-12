@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from api.dependencies import oauth2_scheme  # noqa
 from api.routers import bidding, catalog, diagnostics, iam
+from web import router as web_router
 from config.api_config import ApiConfig
 from config.container import ApplicationContainer
 from seedwork.domain.exceptions import DomainException, EntityNotFoundException
@@ -29,6 +30,7 @@ app.include_router(catalog.router)
 app.include_router(bidding.router)
 app.include_router(iam.router)
 app.include_router(diagnostics.router)
+app.include_router(web_router.router)
 app.container = container  # type: ignore
 
 

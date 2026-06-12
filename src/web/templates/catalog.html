@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Catalog | Premium Auctions{% endblock %}
+
+{% block head %}
+<style>
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2.5rem;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -1px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+
+    .card {
+        background-color: var(--surface-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: var(--card-shadow);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent-color);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-img-placeholder {
+        height: 200px;
+        background: linear-gradient(45deg, #1e293b, #334155);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        font-size: 3rem;
+    }
+
+    .card-content {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .card-desc {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        flex: 1;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+    }
+
+    .price-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.2rem;
+    }
+
+    .price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #10b981; /* Emerald green for money */
+    }
+
+    .bid-btn {
+        background-color: transparent;
+        color: var(--accent-color);
+        border: 1px solid var(--accent-color);
+        padding: 0.4rem 1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .bid-btn:hover {
+        background-color: var(--accent-color);
+        color: white;
+    }
+
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem;
+        background: var(--surface-color);
+        border-radius: 12px;
+        border: 1px dashed var(--border-color);
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>Active Auctions</h1>
+    <a href="#" class="btn" onclick="alert('Create listing flow to be added!')">+ New Listing</a>
+</div>
+
+<div class="grid">
+    {% if listings %}
+        {% for listing in listings %}
+        <a href="/ui/catalog/{{ listing.id }}" style="text-decoration: none; display: contents;">
+            <div class="card">
+                <div class="card-img-placeholder">
+                    <!-- Using an emoji based on title or random just for aesthetics -->
+                    📦
+                </div>
+                <div class="card-content">
+                    <h3 class="card-title">{{ listing.title }}</h3>
+                    <p class="card-desc">{{ listing.description }}</p>
+                    <div class="card-footer">
+                        <div>
+                            <div class="price-label">Current Ask</div>
+                            <div class="price">${{ listing.ask_price_amount }} {{ listing.ask_price_currency }}</div>
+                        </div>
+                        <button class="bid-btn">View Details</button>
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <h3>No active auctions found</h3>
+            <p style="margin-top: 0.5rem;">Run the seed.py script to populate the database!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

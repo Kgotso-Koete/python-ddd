@@ -124,14 +124,20 @@ def create_application(db_engine) -> Application:
         if asyncio.iscoroutine(result):
             result = await result
 
-        logger.debug(f"Collecting event from {ctx['message'].__class__}")
+        repositories = [
+            repo for repo in handler_kwargs.values()
+            if hasattr(repo, "collect_events") and hasattr(repo, "persist_all")
+        ]
 
+        # 1. Persist changes
+        for repo in repositories:
+            repo.persist_all()
+
+        # 2. Collect and publish events
         domain_events = []
-        repositories = filter(
-            lambda x: hasattr(x, "collect_events"), handler_kwargs.values()
-        )
         for repo in repositories:
             domain_events.extend(repo.collect_events())
+
         for event in domain_events:
             logger.debug(f"Publishing {event}")
             await ctx.publish_async(event)

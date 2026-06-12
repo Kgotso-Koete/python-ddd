@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}{{ listing.title }} | Premium Auctions{% endblock %}
+
+{% block head %}
+<style>
+    .details-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        margin-top: 2rem;
+    }
+    @media (max-width: 768px) {
+        .details-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    .image-placeholder {
+        background: linear-gradient(45deg, #1e293b, #334155);
+        border-radius: 16px;
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 5rem;
+        box-shadow: var(--card-shadow);
+    }
+    .info-panel {
+        display: flex;
+        flex-direction: column;
+    }
+    .title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        letter-spacing: -0.5px;
+    }
+    .description {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        line-height: 1.8;
+    }
+    .price-box {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .price-label {
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+    }
+    .price-value {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #10b981;
+    }
+    .bid-form {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    .bid-input {
+        flex: 1;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.6);
+        color: white;
+        font-size: 1.1rem;
+    }
+    .bid-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+    .bid-btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+    }
+    .auction-meta {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        background: rgba(15, 23, 42, 0.3);
+        padding: 1rem;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/ui" style="color: var(--accent-color); text-decoration: none; display: inline-block; margin-bottom: 1rem; font-weight: 500;">← Back to Catalog</a>
+
+<div class="details-container">
+    <div class="image-placeholder">
+        📦
+    </div>
+    <div class="info-panel">
+        <h1 class="title">{{ listing.title }}</h1>
+        <p class="description">{{ listing.description }}</p>
+        
+        <div class="price-box">
+            <div class="price-label">Current Ask Price</div>
+            <div class="price-value">${{ listing.ask_price_amount }} {{ listing.ask_price_currency }}</div>
+            
+            {% if auction %}
+            <div class="auction-meta">
+                <span>⏱ <strong>Ends At:</strong> {{ auction.ends_at.strftime('%Y-%m-%d %H:%M') if auction.ends_at else 'N/A' }}</span>
+                <span>👥 <strong>Total Bids:</strong> {{ auction.bids | length }}</span>
+            </div>
+            {% endif %}
+            
+            {% if error %}
+            <div style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.9rem;">
+                {{ error }}
+            </div>
+            {% endif %}
+            
+            <form class="bid-form" action="/ui/catalog/{{ listing.id }}/bid" method="POST">
+                <input type="number" name="amount" class="bid-input" placeholder="Enter your bid" min="{{ listing.ask_price_amount + 1 }}" step="1" required>
+                <button type="submit" class="btn bid-btn-large">Place Bid</button>
+            </form>
+        </div>
+
+        {% if auction and auction.bids %}
+        <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem;">
+            <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">Recent Bids</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
+                            <th style="padding: 0.75rem 0.5rem;">Bidder ID</th>
+                            <th style="padding: 0.75rem 0.5rem;">Amount</th>
+                            <th style="padding: 0.75rem 0.5rem; text-align: right;">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bid in auction.bids | sort(attribute='max_price.amount', reverse=True) %}
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.75rem 0.5rem; font-family: monospace; color: var(--text-secondary);">{{ bid.bidder_id[:8] }}...</td>
+                            <td style="padding: 0.75rem 0.5rem; color: #10b981; font-weight: 600;">${{ bid.max_price.amount }} {{ bid.max_price.currency }}</td>
+                            <td style="padding: 0.75rem 0.5rem; color: var(--text-secondary); text-align: right; font-size: 0.8rem;">{{ bid.placed_at[:16].replace('T', ' ') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

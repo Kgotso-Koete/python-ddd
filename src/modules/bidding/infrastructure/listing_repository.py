@@ -81,6 +81,7 @@ class ListingDataMapper:
             ask_price=deserialize_money(d["ask_price"]),
             starts_at=deserialize_datetime(d["starts_at"]),
             ends_at=deserialize_datetime(d["ends_at"]),
+            bids=[deserialize_bid(b) for b in d.get("bids", [])],
         )
 
     def entity_to_model(self, entity: Listing) -> ListingModel:

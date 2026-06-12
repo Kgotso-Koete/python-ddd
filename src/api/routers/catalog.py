@@ -63,10 +63,10 @@ async def create_listing(
         ask_price=Money(request_body.ask_price_amount, request_body.ask_price_currency),
         seller_id=current_user.id,
     )
-    app.execute(command)
+    await app.execute_async(command)
 
     query = GetListingDetails(listing_id=command.listing_id)
-    query_result = app.execute_query(query)
+    query_result = await app.execute_async(query)
     return dict(query_result.payload)
 
 

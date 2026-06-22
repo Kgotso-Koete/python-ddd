@@ -1,81 +1,139 @@
 import asyncio
 import uuid
+import logging
+
 from config.api_config import ApiConfig
 from config.container import ApplicationContainer
 from modules.iam.application.services import IamService
 from modules.catalog.application.command.create_listing_draft import CreateListingDraftCommand
 from modules.catalog.application.command.publish_listing_draft import PublishListingDraftCommand
+from modules.bidding.application.command.place_bid import PlaceBidCommand
 from seedwork.domain.value_objects import Money
+from seedwork.infrastructure.database import Base
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def generate_uuid(name: str) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_DNS, name)
 
 async def seed_database():
     config = ApiConfig()
     container = ApplicationContainer(config=config)
     app = container.application()
+    db_engine = container.db_engine()
 
-    user1_id = uuid.uuid4()
-    user2_id = uuid.uuid4()
+    logger.info("Ensuring database tables are created...")
+    Base.metadata.create_all(db_engine)
+
+    # Deterministic UUIDs
+    alice_id = generate_uuid("alice@example.com")
+    bob_id = generate_uuid("bob@example.com")
+    charlie_id = generate_uuid("charlie@example.com")
 
     # IAM service is synchronous
     with app.transaction_context() as ctx:
         iam_service = ctx[IamService]
         
+        users_to_create = [
+            (alice_id, "alice@example.com", "password123", "alice_token"),
+            (bob_id, "bob@example.com", "password123", "bob_token"),
+            (charlie_id, "charlie@example.com", "password123", "charlie_token"),
+        ]
+
+        for u_id, email, pwd, token in users_to_create:
+            try:
+                iam_service.create_user(
+                    user_id=u_id,
+                    email=email,
+                    password=pwd,
+                    access_token=token,
+                )
+                logger.info(f"Created user: {email}")
+            except ValueError:
+                logger.info(f"User {email} already exists")
+            except Exception as e:
+                logger.warning(f"Error creating user {email}: {e}")
+
+    listings = [
+        {
+            "id": generate_uuid("Vintage Leather Jacket"),
+            "title": "Vintage Leather Jacket",
+            "desc": "Authentic 1980s leather jacket in excellent condition.",
+            "price": 150,
+            "seller_id": alice_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("Professional DSLR Camera"),
+            "title": "Professional DSLR Camera",
+            "desc": "Used for 2 years, comes with 2 lenses.",
+            "price": 800,
+            "seller_id": bob_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("Antique Wooden Chair"),
+            "title": "Antique Wooden Chair",
+            "desc": "Needs some restoration.",
+            "price": 50,
+            "seller_id": charlie_id,
+            "publish": False,
+        }
+    ]
+
+    for item in listings:
         try:
-            iam_service.create_user(
-                user_id=user1_id,
-                email="alice@example.com",
-                password="password123",
-                access_token="alice_token",
+            cmd = CreateListingDraftCommand(
+                listing_id=item["id"],
+                title=item["title"],
+                description=item["desc"],
+                ask_price=Money(item["price"], "USD"),
+                seller_id=item["seller_id"]
             )
-            print("Created user: alice@example.com")
-        except ValueError:
-            print("User alice already exists")
+            await app.execute_async(cmd)
+            logger.info(f"Created listing draft: {item['title']}")
+            
+            if item["publish"]:
+                publish_cmd = PublishListingDraftCommand(
+                    listing_id=item["id"],
+                    seller_id=item["seller_id"]
+                )
+                await app.execute_async(publish_cmd)
+                logger.info(f"Published listing: {item['title']}")
+        except Exception as e:
+            logger.info(f"Listing {item['title']} already exists or couldn't be created. ({type(e).__name__})")
 
+    # Place bids
+    bids = [
+        {
+            "listing_id": generate_uuid("Vintage Leather Jacket"),
+            "bidder_id": bob_id,
+            "amount": 160
+        },
+        {
+            "listing_id": generate_uuid("Vintage Leather Jacket"),
+            "bidder_id": charlie_id,
+            "amount": 180
+        },
+        {
+            "listing_id": generate_uuid("Professional DSLR Camera"),
+            "bidder_id": alice_id,
+            "amount": 850
+        }
+    ]
+
+    for bid in bids:
         try:
-            iam_service.create_user(
-                user_id=user2_id,
-                email="bob@example.com",
-                password="password123",
-                access_token="bob_token",
+            place_bid_cmd = PlaceBidCommand(
+                listing_id=bid["listing_id"],
+                bidder_id=bid["bidder_id"],
+                amount=bid["amount"]
             )
-            print("Created user: bob@example.com")
-        except ValueError:
-            print("User bob already exists")
-
-    # Create listings for Alice
-    listing1_id = uuid.uuid4()
-    cmd1 = CreateListingDraftCommand(
-        listing_id=listing1_id,
-        title="Vintage Leather Jacket",
-        description="Authentic 1980s leather jacket in excellent condition.",
-        ask_price=Money(150, "USD"),
-        seller_id=user1_id
-    )
-    await app.execute_async(cmd1)
-    
-    publish_cmd1 = PublishListingDraftCommand(
-        listing_id=listing1_id,
-        seller_id=user1_id
-    )
-    await app.execute_async(publish_cmd1)
-    print("Created and published listing: Vintage Leather Jacket")
-
-    # Create listings for Bob
-    listing2_id = uuid.uuid4()
-    cmd2 = CreateListingDraftCommand(
-        listing_id=listing2_id,
-        title="Professional DSLR Camera",
-        description="Used for 2 years, comes with 2 lenses.",
-        ask_price=Money(800, "USD"),
-        seller_id=user2_id
-    )
-    await app.execute_async(cmd2)
-    
-    publish_cmd2 = PublishListingDraftCommand(
-        listing_id=listing2_id,
-        seller_id=user2_id
-    )
-    await app.execute_async(publish_cmd2)
-    print("Created and published listing: Professional DSLR Camera")
+            await app.execute_async(place_bid_cmd)
+            logger.info(f"Placed bid of {bid['amount']} on listing {bid['listing_id']} by bidder {bid['bidder_id']}")
+        except Exception as e:
+            logger.info(f"Bid already placed or couldn't be placed: {e} ({type(e).__name__})")
 
 if __name__ == "__main__":
     asyncio.run(seed_database())

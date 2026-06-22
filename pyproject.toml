@@ -53,7 +53,7 @@ test_integration = "pytest -m 'not unit'"
 test_coverage = "pytest --cov=src --cov-report=html"
 start = { shell = "uvicorn src.api.main:app --reload" }
 start_cli = { shell = "cd src && python -m cli" }
-compose_up = "docker-compose -f docker-compose.dev.yml up"
+compose_up = "docker compose -f docker-compose.dev.yml up"
 
 [tool.black]
 exclude = 'tmp'

@@ -23,6 +23,22 @@ services:
       - internal-network
       - external-network
 
+  seed:
+    image: python:3.10-slim
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /app/.venv
+    working_dir: /app
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/postgres
+    command: >
+      bash -c "pip install poetry && poetry config virtualenvs.create false && poetry install && PYTHONPATH=src poetry run python src/seed.py"
+    networks:
+      - internal-network
+      - external-network
+
 networks:
   internal-network:
     internal: true

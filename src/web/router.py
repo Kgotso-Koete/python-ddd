@@ -31,6 +31,88 @@ async def home(
         {"request": request, "listings": result, "current_user": current_user}
     )
 
+@router.get("/ui/catalog/new", response_class=HTMLResponse)
+async def new_listing_page(
+    request: Request,
+    ctx: TransactionContext = Depends(get_transaction_context)
+):
+    from fastapi import status
+    from fastapi.responses import RedirectResponse
+    from modules.iam.application.services import IamService
+    
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
+        
+    current_user = ctx[IamService].find_user_by_access_token(access_token)
+    if not current_user:
+        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    return templates.TemplateResponse("create_listing.html", {"request": request, "current_user": current_user})
+
+
+@router.post("/ui/catalog/new")
+async def new_listing_submit(
+    request: Request,
+    app: Annotated[Application, Depends(get_application)],
+    title: str = Form(...),
+    description: str = Form(...),
+    ask_price: int = Form(...),
+    ctx: TransactionContext = Depends(get_transaction_context)
+):
+    import uuid
+    from fastapi import status
+    from fastapi.responses import RedirectResponse
+    from modules.iam.application.services import IamService
+    from modules.catalog.application.command.create_listing_draft import CreateListingDraftCommand
+    from modules.catalog.application.command.publish_listing_draft import PublishListingDraftCommand
+    from seedwork.domain.value_objects import GenericUUID, Money
+    
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
+        
+    current_user = ctx[IamService].find_user_by_access_token(access_token)
+    if not current_user:
+        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    listing_id = GenericUUID(str(uuid.uuid4()))
+    seller_id = GenericUUID(str(current_user.id))
+    
+    try:
+        # Create draft
+        await app.execute_async(
+            CreateListingDraftCommand(
+                listing_id=listing_id,
+                title=title,
+                description=description,
+                ask_price=Money(ask_price, "USD"),
+                seller_id=seller_id
+            )
+        )
+        
+        # Immediately publish
+        await app.execute_async(
+            PublishListingDraftCommand(
+                listing_id=listing_id,
+                seller_id=seller_id
+            )
+        )
+        
+        # Because we are not modifying the core DDD code, the event handler 
+        # does not automatically persist the Bidding Listing. We must flush it manually here.
+        from modules.bidding.infrastructure.listing_repository import PostgresJsonListingRepository as BiddingPostgresJsonListingRepository
+        bidding_repo = ctx[BiddingPostgresJsonListingRepository]
+        bidding_repo.persist_all()
+        
+        return RedirectResponse(url=f"/ui/catalog/{str(listing_id)}", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        return templates.TemplateResponse(
+            "create_listing.html", 
+            {"request": request, "current_user": current_user, "error": str(e)}
+        )
+
+
 @router.get("/ui/catalog/{listing_id}", response_class=HTMLResponse)
 async def listing_details(
     listing_id: str,
@@ -132,6 +214,7 @@ async def place_bid(
                 "error": str(e)
             }
         )
+
 
 @router.get("/ui/logout")
 async def logout(request: Request):

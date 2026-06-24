@@ -20,11 +20,21 @@ async def home(
     query = GetAllListings()
     result = await app.execute_async(query)
     
+    from modules.iam.application.services import IamService
+    from seedwork.domain.value_objects import GenericUUID
+    iam_service = ctx[IamService]
+    
+    for listing in result:
+        try:
+            seller = iam_service.user_repository.get_by_id(GenericUUID(listing["seller_id"]))
+            listing["seller_email"] = seller.email if seller else "Unknown Seller"
+        except Exception:
+            listing["seller_email"] = "Unknown Seller"
+    
     current_user = None
     access_token = request.cookies.get("access_token")
     if access_token:
-        from modules.iam.application.services import IamService
-        current_user = ctx[IamService].find_user_by_access_token(access_token)
+        current_user = iam_service.find_user_by_access_token(access_token)
     
     return templates.TemplateResponse(
         "catalog.html", 
@@ -99,11 +109,7 @@ async def new_listing_submit(
             )
         )
         
-        # Because we are not modifying the core DDD code, the event handler 
-        # does not automatically persist the Bidding Listing. We must flush it manually here.
-        from modules.bidding.infrastructure.listing_repository import PostgresJsonListingRepository as BiddingPostgresJsonListingRepository
-        bidding_repo = ctx[BiddingPostgresJsonListingRepository]
-        bidding_repo.persist_all()
+
         
         return RedirectResponse(url=f"/ui/catalog/{str(listing_id)}", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
@@ -118,6 +124,7 @@ async def listing_details(
     listing_id: str,
     request: Request,
     app: Annotated[Application, Depends(get_application)],
+    success: str = None,
     ctx: TransactionContext = Depends(get_transaction_context)
 ):
     from modules.catalog.application.query.get_listing_details import GetListingDetails
@@ -140,11 +147,19 @@ async def listing_details(
         # Bidding might not exist if not published or errors
         pass
         
+    from modules.iam.application.services import IamService
+    iam_service = ctx[IamService]
+    
+    try:
+        seller = iam_service.user_repository.get_by_id(GenericUUID(listing_result["seller_id"]))
+        listing_result["seller_email"] = seller.email if seller else "Unknown Seller"
+    except Exception:
+        listing_result["seller_email"] = "Unknown Seller"
+
     current_user = None
     access_token = request.cookies.get("access_token")
     if access_token:
-        from modules.iam.application.services import IamService
-        current_user = ctx[IamService].find_user_by_access_token(access_token)
+        current_user = iam_service.find_user_by_access_token(access_token)
         
     return templates.TemplateResponse(
         "listing_details.html",
@@ -152,7 +167,8 @@ async def listing_details(
             "request": request, 
             "listing": listing_result, 
             "auction": auction_result,
-            "current_user": current_user
+            "current_user": current_user,
+            "success": success
         }
     )
 
@@ -189,8 +205,10 @@ async def place_bid(
     
     try:
         await app.execute_async(command)
+        
+
         # If successful, redirect back to the listing to see the updated bid
-        return RedirectResponse(url=f"/ui/catalog/{listing_id}", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=f"/ui/catalog/{listing_id}?success=Bid+placed+successfully", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         # 3. If bidding fails (e.g. DomainException) we render the page with an error
         from modules.catalog.application.query.get_listing_details import GetListingDetails

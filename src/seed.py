@@ -109,34 +109,6 @@ async def seed_database():
             except Exception as e:
                 logger.info(f"Listing {item['title']} already published or failed. ({type(e).__name__})")
 
-            try:
-                # The Publish command triggers an event that creates a Bidding Listing.
-                # However, since the bidding repository wasn't part of the initial command, 
-                # the UoW middleware doesn't automatically persist it. We do it manually here.
-                from modules.bidding.domain.entities import Listing as BiddingListing
-                from modules.bidding.domain.value_objects import Seller as BiddingSeller
-                from modules.bidding.infrastructure.listing_repository import PostgresJsonListingRepository as BiddingPostgresJsonListingRepository
-                from datetime import datetime, timedelta
-
-                with app.transaction_context() as ctx:
-                    bidding_repo = ctx[BiddingPostgresJsonListingRepository]
-                    # Check if it already exists to avoid unique constraint errors
-                    try:
-                        bidding_repo.get_by_id(item["id"])
-                    except Exception:
-                        bidding_listing = BiddingListing(
-                            id=item["id"],
-                            seller=BiddingSeller(id=item["seller_id"]),
-                            ask_price=Money(item["price"], "USD"),
-                            starts_at=datetime.now(),
-                            ends_at=datetime.now() + timedelta(days=7),
-                        )
-                        bidding_repo.add(bidding_listing)
-                        bidding_repo.persist_all()
-                        logger.info(f"Manually persisted Bidding Listing for: {item['title']}")
-            except Exception as e:
-                logger.warning(f"Failed to manually persist Bidding Listing: {e}")
-
     # Place bids
     bids = [
         {

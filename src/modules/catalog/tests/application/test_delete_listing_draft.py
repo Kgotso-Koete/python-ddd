@@ -13,8 +13,9 @@ from seedwork.domain.value_objects import GenericUUID, Money
 from seedwork.infrastructure.repository import InMemoryRepository
 from seedwork.tests.application.test_utils import FakeEventPublisher
 
+@pytest.mark.asyncio
 @pytest.mark.unit
-def test_delete_listing_draft():
+async def test_delete_listing_draft():
     # arrange
     seller_id = GenericUUID.next_id()
     repository = InMemoryRepository()
@@ -35,14 +36,15 @@ def test_delete_listing_draft():
     )
 
     # act
-    delete_listing_draft(command, repository, publish)
+    await delete_listing_draft(command, repository, publish)
 
     # assert
     assert publish.contains(ListingDraftDeletedEvent)
 
 
+@pytest.mark.asyncio
 @pytest.mark.integration
-def test_delete_listing_draft_removes_from_database(db_session):
+async def test_delete_listing_draft_removes_from_database(db_session):
     seller_id = GenericUUID.next_id()
     repository = PostgresJsonListingRepository(db_session=db_session)
     listing = Listing(
@@ -61,7 +63,7 @@ def test_delete_listing_draft_removes_from_database(db_session):
     )
 
     # act
-    delete_listing_draft(command, repository, publish)
+    await delete_listing_draft(command, repository, publish)
 
     # assert
     assert repository.count() == 0

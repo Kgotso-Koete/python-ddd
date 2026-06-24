@@ -26,10 +26,19 @@ async def get_bidding_details_of_listing(
     """
     query = GetBiddingDetails(listing_id=listing_id)
     result = await app.execute_async(query)
+    mapped_bids = []
+    for bid in result.bids:
+        mapped_bids.append({
+            "amount": bid["max_price"]["amount"],
+            "currency": bid["max_price"]["currency"],
+            "bidder_id": bid["bidder_id"],
+            "bidder_username": "Unknown",
+        })
+
     return BiddingResponse(
         listing_id=result.id,
         auction_end_date=result.ends_at,
-        bids=result.bids,
+        bids=mapped_bids,
     )
 
 
@@ -47,9 +56,10 @@ async def place_bid(
     """
     # TODO: get bidder from current user
 
+    from seedwork.domain.value_objects import GenericUUID
     command = PlaceBidCommand(
-        listing_id=listing_id,
-        bidder_id=request_body.bidder_id,
+        listing_id=GenericUUID(str(listing_id)),
+        bidder_id=GenericUUID(str(request_body.bidder_id)),
         amount=request_body.amount,
     )
     await app.execute_async(command)
@@ -57,10 +67,19 @@ async def place_bid(
 
     query = GetBiddingDetails(listing_id=listing_id)
     result = await app.execute_async(query)
+    mapped_bids = []
+    for bid in result.bids:
+        mapped_bids.append({
+            "amount": bid["max_price"]["amount"],
+            "currency": bid["max_price"]["currency"],
+            "bidder_id": bid["bidder_id"],
+            "bidder_username": "Unknown",
+        })
+
     return BiddingResponse(
         listing_id=result.id,
         auction_end_date=result.ends_at,
-        bids=result.bids,
+        bids=mapped_bids,
     )
 
 
@@ -85,8 +104,17 @@ async def retract_bid(
     query = GetBiddingDetails(listing_id=listing_id)
     query_result = app.execute_query(query)
     payload = query_result.payload
+    mapped_bids = []
+    for bid in payload.bids:
+        mapped_bids.append({
+            "amount": bid["max_price"]["amount"],
+            "currency": bid["max_price"]["currency"],
+            "bidder_id": bid["bidder_id"],
+            "bidder_username": "Unknown",
+        })
+
     return BiddingResponse(
         listing_id=str(payload.id),
         auction_end_date=payload.ends_at,
-        bids=payload.bids,
+        bids=mapped_bids,
     )

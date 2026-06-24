@@ -22,7 +22,7 @@ class DeleteListingDraftCommand(Command):
 
 
 @catalog_module.handler(DeleteListingDraftCommand)
-def delete_listing_draft(
+async def delete_listing_draft(
     command: DeleteListingDraftCommand, repository: ListingRepository, publish
 ):
     listing: Listing = repository.get_by_id(command.listing_id)

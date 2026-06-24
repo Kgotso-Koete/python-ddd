@@ -8,7 +8,7 @@ from modules.catalog.domain.events import ListingPublishedEvent
 
 
 @bidding_module.handler(ListingPublishedEvent)
-def when_listing_is_published_start_auction(
+async def when_listing_is_published_start_auction(
     event: ListingPublishedEvent, listing_repository: ListingRepository
 ):
     listing = Listing(

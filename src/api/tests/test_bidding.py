@@ -60,4 +60,5 @@ async def test_place_bid(app, api_client):
 
     response = api_client.post(url, json={"bidder_id": str(bidder_id), "amount": 11})
     json = response.json()
-    assert response.status_code == 200
+    if response.status_code != 200:
+        raise Exception(f"API Error: {json}")

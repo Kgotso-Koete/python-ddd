@@ -15,7 +15,7 @@ class PlaceBidCommand(Command):
 
 
 @bidding_module.handler(PlaceBidCommand)
-def place_bid(
+async def place_bid(
     command: PlaceBidCommand, listing_repository: ListingRepository
 ):
     bidder = Bidder(id=command.bidder_id)

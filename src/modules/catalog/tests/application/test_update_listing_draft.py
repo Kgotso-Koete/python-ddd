@@ -9,8 +9,9 @@ from seedwork.domain.value_objects import GenericUUID, Money
 from seedwork.infrastructure.repository import InMemoryRepository
 
 
+@pytest.mark.asyncio
 @pytest.mark.unit
-def test_update_listing_draft():
+async def test_update_listing_draft():
     # arrange
     repository = InMemoryRepository()
     listing = Listing(
@@ -31,7 +32,7 @@ def test_update_listing_draft():
     )
 
     # act
-    update_listing_draft(command, repository)
+    await update_listing_draft(command, repository)
 
     # assert
     assert listing.title == "Tiny golden dragon"
@@ -40,8 +41,9 @@ def test_update_listing_draft():
 @pytest.mark.skip(
     "UpdateListingDraftCommand with optional fields is not yet implemented"
 )
+@pytest.mark.asyncio
 @pytest.mark.unit
-def test_partially_update_listing_draft():
+async def test_partially_update_listing_draft():
     # arrange
     repository = InMemoryRepository()
     listing = Listing(
@@ -59,7 +61,7 @@ def test_partially_update_listing_draft():
         listing_id=listing.id,
         title="Tiny golden dragon",
     )
-    update_listing_draft(command, repository)
+    await update_listing_draft(command, repository)
 
     # assert
     assert repository.get_by_id(listing.id).title == "Tiny golden dragon"

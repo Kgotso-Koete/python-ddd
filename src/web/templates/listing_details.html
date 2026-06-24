@@ -105,6 +105,7 @@
     </div>
     <div class="info-panel">
         <h1 class="title">{{ listing.title }}</h1>
+        <p style="font-size: 0.95rem; color: var(--accent-color); margin-top: -0.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.4rem;"><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> Listed by: {{ listing.seller_email }}</p>
         <p class="description">{{ listing.description }}</p>
         
         <div class="price-box">
@@ -121,6 +122,12 @@
             {% if error %}
             <div style="color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.9rem;">
                 {{ error }}
+            </div>
+            {% endif %}
+            
+            {% if success %}
+            <div style="color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.9rem;">
+                {{ success }}
             </div>
             {% endif %}
             

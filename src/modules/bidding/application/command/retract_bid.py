@@ -12,7 +12,7 @@ class RetractBidCommand(Command):
 
 
 @bidding_module.handler(RetractBidCommand)
-def retract_bid(
+async def retract_bid(
     command: RetractBidCommand, listing_repository: ListingRepository
 ):
     bidder = Bidder(id=command.bidder_id)

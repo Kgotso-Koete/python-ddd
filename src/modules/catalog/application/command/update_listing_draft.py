@@ -16,7 +16,7 @@ class UpdateListingDraftCommand(Command):
 
 
 @catalog_module.handler(UpdateListingDraftCommand)
-def update_listing_draft(
+async def update_listing_draft(
     command: UpdateListingDraftCommand, repository: ListingRepository
 ):
     listing: Listing = repository.get_by_id(command.listing_id)

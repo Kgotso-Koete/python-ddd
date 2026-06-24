@@ -136,7 +136,7 @@ These are the innermost building blocks of your Domain Layer.
 
 **Analogy:** You and someone else might share the same name, age, and hair color, but you have different ID numbers. You are different entities.
 
-**In the codebase:** Look at `src/modules/bidding/domain/entities.py`. The `Listing` class is an Entity (specifically, an `AggregateRoot`, which is a special type of Entity we'll discuss later).
+**In the codebase:** Look at [src/modules/bidding/domain/entities.py](../src/modules/bidding/domain/entities.py). The `Listing` class is an Entity (specifically, an `AggregateRoot`, which is a special type of Entity we'll discuss later).
 
 ```python
 # From src/seedwork/domain/entities.py
@@ -161,7 +161,7 @@ Notice what is *missing* here: There is absolutely zero mention of databases, co
 
 **Analogy:** A $10 bill is a Value Object. If I swap my $10 bill for your $10 bill, neither of us cares. We only care about the *value* ($10), not the specific serial number of the bill.
 
-**In the codebase:** Look at `src/seedwork/domain/value_objects.py`. 
+**In the codebase:** Look at [src/seedwork/domain/value_objects.py](../src/seedwork/domain/value_objects.py). 
 
 ```python
 @dataclass(frozen=True)
@@ -176,7 +176,7 @@ class Money(ValueObject):
 
 Value objects should ideally be **immutable** (`frozen=True`). If you need $20 instead of $10, you don't change the $10 bill; you throw it away and create a new $20 bill.
 
-Look at `src/modules/bidding/domain/value_objects.py`. Notice how `Bidder` is just a wrapped UUID? This prevents you from accidentally passing a `Seller` ID into a function that expects a `Bidder` ID, even though both are just UUIDs under the hood!
+Look at [src/modules/bidding/domain/value_objects.py](../src/modules/bidding/domain/value_objects.py). Notice how `Bidder` is just a wrapped UUID? This prevents you from accidentally passing a `Seller` ID into a function that expects a `Bidder` ID, even though both are just UUIDs under the hood!
 
 ```python
 @dataclass(frozen=True)
@@ -186,17 +186,36 @@ class Bidder(ValueObject):
 
 ---
 
+## Part 4: Bounded Contexts — Where is the User?
+
+You might be wondering: *"In a normal application, the `User` is the most fundamental model. Why isn't `User` the center of the Domain here? Why do we have `Bidder` and `Seller` instead?"*
+
+This is one of the most powerful concepts in DDD, known as **Bounded Contexts** (covered later in Cosmic Python Chapter 14). 
+
+In traditional CRUD apps, the `User` table becomes a massive "God Object" that knows about passwords, billing, bids, listings, and notifications. 
+
+DDD solves this by dividing the system into distinct boundaries (modules), where concepts mean different things:
+*   **In the `iam` (Identity & Access Management) module:** The concept of a `User` exists. It cares about emails, hashed passwords, and authentication tokens.
+*   **In the `bidding` module:** The system does not care about passwords or emails. It only cares whether an ID is acting as a `Bidder` or a `Seller` for a specific auction.
+*   **In the `catalog` module:** The system cares about the `Seller` creating a draft.
+
+Because the Bidding module doesn't care about authentication, it **does not import the User entity**. Instead, it models `Bidder` and `Seller` as simple **Value Objects** that just hold a UUID. The Bidding module trusts that the outer layers (the API routing and IAM module) have already authenticated the person making the request.
+
+This prevents the Bidding code from ever accidentally modifying a user's password!
+
+---
+
 ## 🧪 Hands-On Exercise #1
 
 To cement these concepts, try the following exercises in the codebase:
 
 ### Exercise 1A: Trace the Dependency Rule
 Open the following files and look purely at their `import` statements at the top. Verify the Dependency Rule is working:
-1.  Open `src/modules/bidding/domain/entities.py`. Notice it only imports from `datetime`, `dataclasses`, other `domain` files, and `seedwork`. No external libraries!
-2.  Open `src/modules/bidding/infrastructure/listing_repository.py`. Notice it imports from `sqlalchemy`. It also imports from the domain (`Listing`, `Bid`, `Money`) to know what objects to map the database rows into. The outer circle depends on the inner circle.
+1.  Open [src/modules/bidding/domain/entities.py](../src/modules/bidding/domain/entities.py). Notice it only imports from `datetime`, `dataclasses`, other `domain` files, and `seedwork`. No external libraries!
+2.  Open [src/modules/bidding/infrastructure/listing_repository.py](../src/modules/bidding/infrastructure/listing_repository.py). Notice it imports from `sqlalchemy`. It also imports from the domain (`Listing`, `Bid`, `Money`) to know what objects to map the database rows into. The outer circle depends on the inner circle.
 
 ### Exercise 1B: Entity vs Value Object Check
-1.  Why is a `Bid` considered a `ValueObject` in this codebase (`src/modules/bidding/domain/value_objects.py`), while `Listing` is an `Entity`? (Hint: Think about how eBay works. Does an individual bid need a global ID, or does it just belong to the Listing?)
+1.  Why is a `Bid` considered a `ValueObject` in this codebase ([src/modules/bidding/domain/value_objects.py](../src/modules/bidding/domain/value_objects.py)), while `Listing` is an `Entity`? (Hint: Think about how eBay works. Does an individual bid need a global ID, or does it just belong to the Listing?)
 
 ---
 
@@ -208,6 +227,6 @@ Open the following files and look purely at their `import` statements at the top
 *   **Value Objects** have no ID, are immutable, and are interchangeable if their attributes match.
 
 > [!NOTE]  
-> Take a look through the files mentioned in this chapter (`seedwork/domain/entities.py`, `modules/bidding/domain/entities.py`, `seedwork/domain/value_objects.py`). 
+> Take a look through the files mentioned in this chapter ([seedwork/domain/entities.py](../src/seedwork/domain/entities.py), [modules/bidding/domain/entities.py](../src/modules/bidding/domain/entities.py), [seedwork/domain/value_objects.py](../src/seedwork/domain/value_objects.py)). 
 > 
 > Let me know when you are ready for **Chapter 2**, where we will dive into how Business Rules are enforced and how Domain Events work!

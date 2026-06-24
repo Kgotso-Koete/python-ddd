@@ -219,6 +219,28 @@ Open the following files and look purely at their `import` statements at the top
 
 ---
 
+## Part 5: Where does TDD fit into this?
+
+Test-Driven Development (TDD) and Domain-Driven Design (DDD) work perfectly together. Because the Domain Layer (Entities and Value Objects) has absolutely zero dependencies—no database, no FastAPI, no internet—we can write pure Python Unit Tests that run in *milliseconds*.
+
+In traditional TDD, testing business logic requires spinning up a database and firing HTTP requests, which is slow and fragile. In DDD, you can instantiate a `Listing` in memory and assert its state instantly.
+
+**TDD in Action:** Look at [src/modules/bidding/tests/domain/test_bidding.py](../src/modules/bidding/tests/domain/test_bidding.py). Notice how it tests pure Python classes without any database or framework setup!
+
+### Running the Tests
+
+To run the entire suite of Domain Layer tests (which covers everything in Chapters 1 & 2), run this from your terminal:
+```bash
+poe test_domain
+```
+
+To run a "micro-test" on a specific Entity behavior or business rule without running the whole suite, you can use standard `pytest` syntax to target a single file or function. For example:
+```bash
+pytest src/modules/bidding/tests/domain/test_bidding.py::test_place_one_bid
+```
+
+---
+
 ## Summary
 
 *   **Clean Architecture** keeps your business rules safe from your database and web framework.

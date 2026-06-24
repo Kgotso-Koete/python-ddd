@@ -94,6 +94,31 @@ Later, the Application Layer (specifically the Unit of Work middleware we'll loo
 
 ---
 
+## Part 3: Test-Driven Development (TDD) for Business Rules
+
+Because our Business Rules are pure Python classes (like `PriceOfPlacedBidMustBeGreaterOrEqualThanNextMinimumPrice`), TDD is a breeze.
+
+If your product manager says: *"A user cannot place a bid lower than the starting price"*, you do not need to write an API route to test this. You simply:
+1. Write a test in `test_bidding.py` that creates a `Listing` and a `Bid`.
+2. Call `listing.place_bid(bid)`.
+3. Assert that it raises a `BusinessRuleValidationException`.
+
+Because the rules are decoupled from infrastructure, you can test hundreds of rules in under a second!
+
+### Running the Tests
+
+To run the entire suite of Domain Layer tests (which covers everything in Chapters 1 & 2), run this from your terminal:
+```bash
+poe test_domain
+```
+
+To run a "micro-test" specifically targeting a **Business Rule** (e.g., verifying you cannot bid on an ended listing), run this:
+```bash
+pytest src/modules/bidding/tests/domain/test_bidding.py::test_cannot_place_bid_if_listing_ended
+```
+
+---
+
 ## 🧪 Hands-On Exercise #2
 
 Let's test your understanding of Business Rules and Events:

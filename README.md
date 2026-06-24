@@ -92,4 +92,16 @@ Since `Payment` context will be provided by a 3rd party payments provider (via R
 
 `poe test`
 
-Visit `http://localhost:8000/ui` in your browser to test the API using a UI
+Visit `http://localhost:8000/ui` in your browser to test the API using a UI.
+
+Visit `http://localhost:8000/docs` in your browser to view and interact with the automatically generated FastAPI Swagger documentation. The schemas are pre-populated with default IDs from the seed script.
+
+Visit `http://localhost:8081` in your browser to view the database using PGAdmin (Start the `poe compose_up` database first).
+- **Login Email**: `admin@admin.com`
+- **Login Password**: `root`
+- After logging in, click "Add New Server":
+  - **Name**: local_db
+  - **Connection -> Host name/address**: `db`
+  - **Connection -> Username**: `postgres`
+  - **Connection -> Password**: `password`
+

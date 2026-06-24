@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid5, NAMESPACE_DNS
 
 from pydantic import BaseModel
 
@@ -31,3 +32,9 @@ class PlaceBidRequest(BaseModel):
     
     class Config:
         arbitrary_types_allowed = True
+        schema_extra = {
+            "example": {
+                "bidder_id": str(uuid5(NAMESPACE_DNS, "bob.buyer@example.com")),
+                "amount": 160.0
+            }
+        }

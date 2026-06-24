@@ -1,4 +1,4 @@
-from uuid import UUID, uuid4
+from uuid import UUID, uuid4, uuid5, NAMESPACE_DNS
 
 from pydantic import BaseModel
 
@@ -18,9 +18,28 @@ class ListingWriteModel(BaseModel):
     ask_price_amount: float
     ask_price_currency: str = "USD"
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "title": "Antique Wooden Chair",
+                "description": "Needs some restoration.",
+                "ask_price_amount": 50.0,
+                "ask_price_currency": "USD"
+            }
+        }
+
+
 
 class ListingPublishModel(BaseModel):
     id: UUID
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "id": str(uuid5(NAMESPACE_DNS, "Antique Wooden Chair"))
+            }
+        }
+
 
 
 class ListingReadModel(BaseModel):

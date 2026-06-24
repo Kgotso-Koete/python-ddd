@@ -76,6 +76,12 @@ Since `Payment` context will be provided by a 3rd party payments provider (via R
 
 ## How to run this project
 
+`python3 -m venv .venv`
+
+`source .venv/bin/activate`
+
+`pip install poetry poethepoet`
+
 `poetry shell`
 
 `poetry install`
@@ -85,3 +91,5 @@ Since `Payment` context will be provided by a 3rd party payments provider (via R
 `poe start`
 
 `poe test`
+
+Visit `http://localhost:8000/ui` in your browser to test the API using a UI

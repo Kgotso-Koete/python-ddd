@@ -27,18 +27,20 @@ async def seed_database():
     Base.metadata.create_all(db_engine)
 
     # Deterministic UUIDs
-    alice_id = generate_uuid("alice@example.com")
-    bob_id = generate_uuid("bob@example.com")
-    charlie_id = generate_uuid("charlie@example.com")
+    seller_id = generate_uuid("alice.seller@example.com")
+    buyer_id = generate_uuid("bob.buyer@example.com")
+    admin_id = generate_uuid("admin@example.com")
+    staff_id = generate_uuid("staff@example.com")
 
     # IAM service is synchronous
     with app.transaction_context() as ctx:
         iam_service = ctx[IamService]
         
         users_to_create = [
-            (alice_id, "alice@example.com", "password123", "alice_token"),
-            (bob_id, "bob@example.com", "password123", "bob_token"),
-            (charlie_id, "charlie@example.com", "password123", "charlie_token"),
+            (seller_id, "alice.seller@example.com", "password123", "seller_token"),
+            (buyer_id, "bob.buyer@example.com", "password123", "buyer_token"),
+            (admin_id, "admin@example.com", "password123", "admin_token"),
+            (staff_id, "staff@example.com", "password123", "staff_token"),
         ]
 
         for u_id, email, pwd, token in users_to_create:
@@ -61,7 +63,7 @@ async def seed_database():
             "title": "Vintage Leather Jacket",
             "desc": "Authentic 1980s leather jacket in excellent condition.",
             "price": 150,
-            "seller_id": alice_id,
+            "seller_id": seller_id,
             "publish": True,
         },
         {
@@ -69,7 +71,7 @@ async def seed_database():
             "title": "Professional DSLR Camera",
             "desc": "Used for 2 years, comes with 2 lenses.",
             "price": 800,
-            "seller_id": bob_id,
+            "seller_id": admin_id,
             "publish": True,
         },
         {
@@ -77,7 +79,7 @@ async def seed_database():
             "title": "Antique Wooden Chair",
             "desc": "Needs some restoration.",
             "price": 50,
-            "seller_id": charlie_id,
+            "seller_id": seller_id,
             "publish": False,
         }
     ]
@@ -93,32 +95,63 @@ async def seed_database():
             )
             await app.execute_async(cmd)
             logger.info(f"Created listing draft: {item['title']}")
+        except Exception as e:
+            logger.info(f"Listing draft {item['title']} already exists or failed. ({type(e).__name__})")
             
-            if item["publish"]:
+        if item["publish"]:
+            try:
                 publish_cmd = PublishListingDraftCommand(
                     listing_id=item["id"],
                     seller_id=item["seller_id"]
                 )
                 await app.execute_async(publish_cmd)
                 logger.info(f"Published listing: {item['title']}")
-        except Exception as e:
-            logger.info(f"Listing {item['title']} already exists or couldn't be created. ({type(e).__name__})")
+            except Exception as e:
+                logger.info(f"Listing {item['title']} already published or failed. ({type(e).__name__})")
+
+            try:
+                # The Publish command triggers an event that creates a Bidding Listing.
+                # However, since the bidding repository wasn't part of the initial command, 
+                # the UoW middleware doesn't automatically persist it. We do it manually here.
+                from modules.bidding.domain.entities import Listing as BiddingListing
+                from modules.bidding.domain.value_objects import Seller as BiddingSeller
+                from modules.bidding.infrastructure.listing_repository import PostgresJsonListingRepository as BiddingPostgresJsonListingRepository
+                from datetime import datetime, timedelta
+
+                with app.transaction_context() as ctx:
+                    bidding_repo = ctx[BiddingPostgresJsonListingRepository]
+                    # Check if it already exists to avoid unique constraint errors
+                    try:
+                        bidding_repo.get_by_id(item["id"])
+                    except Exception:
+                        bidding_listing = BiddingListing(
+                            id=item["id"],
+                            seller=BiddingSeller(id=item["seller_id"]),
+                            ask_price=Money(item["price"], "USD"),
+                            starts_at=datetime.now(),
+                            ends_at=datetime.now() + timedelta(days=7),
+                        )
+                        bidding_repo.add(bidding_listing)
+                        bidding_repo.persist_all()
+                        logger.info(f"Manually persisted Bidding Listing for: {item['title']}")
+            except Exception as e:
+                logger.warning(f"Failed to manually persist Bidding Listing: {e}")
 
     # Place bids
     bids = [
         {
             "listing_id": generate_uuid("Vintage Leather Jacket"),
-            "bidder_id": bob_id,
+            "bidder_id": buyer_id,
             "amount": 160
         },
         {
             "listing_id": generate_uuid("Vintage Leather Jacket"),
-            "bidder_id": charlie_id,
+            "bidder_id": staff_id,
             "amount": 180
         },
         {
             "listing_id": generate_uuid("Professional DSLR Camera"),
-            "bidder_id": alice_id,
+            "bidder_id": buyer_id,
             "amount": 850
         }
     ]

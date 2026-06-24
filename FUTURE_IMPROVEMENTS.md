@@ -47,3 +47,9 @@ Currently, all modules live inside a single `src/modules/` directory, relying on
 
 **The Improvement:** Break modules into physically separate, installable Python packages with their own `setup.py` or `pyproject.toml` files.
 - **Why it's crucial:** This enforces strict architectural boundaries at the package manager level—modules physically cannot cross-import unless explicitly declared as a dependency, forcing developers to communicate via explicit Domain Events or API contracts.
+
+## 8. Low Hanging Fruit
+
+### Missing Business Rules
+- **The Improvement:** Add a `SellerCannotBidOnOwnListing` Business Rule to `src/modules/bidding/domain/rules.py` and enforce it in `Listing.place_bid()`.
+- **Why it's crucial:** The domain currently allows a seller to bid on their own listing (shill bidding). Catching and fixing these missing real-world constraints is a great exercise for practicing Domain-Driven Design in the `domain` layer.

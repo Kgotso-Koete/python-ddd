@@ -279,7 +279,223 @@ The DAO is a flat, serializable object optimized for the API response. It doesn'
 
 ---
 
-## Part 5: Event Handlers — Cross-Module Communication
+## Part 5: How Commands Connect to the Real Database — Ports, Adapters, and Dependency Injection
+
+At this point you might be asking: *"The handler declares `listing_repository: ListingRepository`, but `ListingRepository` is just an abstract interface with no SQL code. How does the handler end up talking to PostgreSQL?"*
+
+This is the most important wiring question in the whole architecture, and it involves four concepts: **Ports**, **Adapters**, **Dependency Injection**, and **Providers**.
+
+### What is Dependency Injection?
+
+**Dependency Injection (DI)** means: *instead of a function creating what it needs, someone else gives it what it needs.*
+
+**Without DI** (tightly coupled — the anti-pattern):
+```python
+async def place_bid(command: PlaceBidCommand):
+    # The function creates its own dependency — knows about PostgreSQL!
+    session = Session(create_engine("postgresql://localhost/mydb"))
+    repo = PostgresJsonListingRepository(db_session=session)
+
+    listing = repo.get_by_id(command.listing_id)
+    listing.place_bid(bid)
+```
+
+**With DI** (what this codebase does):
+```python
+async def place_bid(
+    command: PlaceBidCommand,
+    listing_repository: ListingRepository  # ← "just give me one of these"
+):
+    listing = listing_repository.get_by_id(command.listing_id)
+    listing.place_bid(bid)
+```
+
+The handler says *"I need a `ListingRepository`"* via the type hint. It doesn't create it, doesn't know what database is behind it, doesn't care. **Someone else** (the `ContainerProvider` in `container.py`) reads that type hint, finds a matching concrete implementation, creates it, and **injects** it into the function call.
+
+> **Real-world analogy:** Without DI, you're a chef who drives to the farm, picks tomatoes, drives back, then cooks. With DI, you're a chef who says *"I need tomatoes"* and they appear on your counter. You don't know or care which farm they came from — you just cook. The `container.py` is the delivery service that reads your ingredient list (type hints) and delivers the right stuff.
+
+### Ports — The Abstract Interface (Domain Layer)
+
+A **Port** is a "plug socket" — it defines *what* operations are available without saying *how* they work. Ports live in the **Domain layer** because the Domain defines what it *needs*.
+
+Open [modules/bidding/domain/repositories.py](../src/modules/bidding/domain/repositories.py):
+
+```python
+class ListingRepository(GenericRepository[GenericUUID, Listing], ABC):
+    """An interface for Listing repository"""
+```
+
+It inherits abstract methods like `add()`, `get_by_id()`, `remove()` from [seedwork/domain/repositories.py](../src/seedwork/domain/repositories.py) — but has **zero implementation**. The Domain says *"I need something that can store and retrieve Listings"* without caring if that's PostgreSQL, MongoDB, or an in-memory dictionary.
+
+### Adapters — The Concrete Implementation (Infrastructure Layer)
+
+An **Adapter** is the "plug" that fits into the port — it provides the *actual* implementation. Adapters live in the **Infrastructure layer**.
+
+Open [modules/bidding/infrastructure/listing_repository.py](../src/modules/bidding/infrastructure/listing_repository.py):
+
+```python
+class PostgresJsonListingRepository(SqlAlchemyGenericRepository, ListingRepository):
+    """Listing repository implementation"""
+    mapper_class = ListingDataMapper
+    model_class = ListingModel
+```
+
+This is where SQLAlchemy, database columns, and JSON serialization actually live. It "adapts" PostgreSQL to fit the `ListingRepository` port. Notice it inherits from **both** `SqlAlchemyGenericRepository` (infrastructure base) AND `ListingRepository` (the domain port) — this is how the adapter fulfills the interface contract.
+
+### Providers — The DI Registration (Config Layer)
+
+A **Provider** tells the DI container *"here's how to create an instance of this thing."* It's the **wiring** that connects ports to adapters.
+
+Open [config/container.py](../src/config/container.py) and look at the `TransactionContainer`:
+
+```python
+from modules.bidding.infrastructure.listing_repository import (
+    PostgresJsonListingRepository as BiddingPostgresJsonListingRepository,
+)
+
+class TransactionContainer(containers.DeclarativeContainer):
+    db_session = providers.Dependency(instance_of=Session)
+
+    bidding_listing_repository = providers.Singleton(
+        BiddingPostgresJsonListingRepository,  # ← the REAL SQL class
+        db_session=db_session,                 # ← auto-injected session
+    )
+```
+
+This is the **single place** where abstract meets concrete. The provider says: *"When someone asks for something that is a `ListingRepository`, create a `PostgresJsonListingRepository` and pass it a database session."*
+
+There are different provider types in the `dependency-injector` library:
+
+| Provider Type | Meaning | Example |
+|---|---|---|
+| `providers.Singleton(...)` | Create **once**, reuse the same instance | `bidding_listing_repository` |
+| `providers.Dependency(...)` | Expect this to be **passed in** from outside | `db_session` |
+| `providers.Factory(...)` | Create a **new** instance every time | (not used here, but available) |
+
+### Singletons — Why "Create Once" Matters
+
+A **Singleton** means *"create exactly one instance and reuse it for the entire lifetime of the container."*
+
+Each transaction gets its own `TransactionContainer`. Within that transaction, `providers.Singleton` ensures only **one** `PostgresJsonListingRepository` exists. This is critical because:
+
+- If the handler and an event handler both need the repository, they get the **same instance**
+- That shared instance tracks all changes within one database session
+- This is what makes the **Unit of Work** pattern work (covered in Chapter 4)
+
+### How the Type-Matching Works
+
+When the `place_bid` handler declares `listing_repository: ListingRepository`, the `ContainerProvider` in [container.py](../src/config/container.py) does the following:
+
+```python
+# ContainerProvider.get_dependency() — simplified
+def get_dependency(self, identifier):
+    if isinstance(identifier, type):
+        # Search: "which registered provider's class is a subclass of ListingRepository?"
+        provider = resolve_provider_by_type(self.container, identifier)
+    instance = provider()  # Create/return the singleton instance
+    return instance
+```
+
+The `resolve_provider_by_type()` function scans all providers and checks: *"Is `PostgresJsonListingRepository` a subclass of `ListingRepository`?"* — Yes it is (because it inherits from it), so it matches and returns that concrete instance.
+
+### The Complete Wiring — Port to Database
+
+```mermaid
+graph TD
+    subgraph "Domain Layer - PORT"
+        PORT["ListingRepository (ABC)\nadd() / get_by_id() / remove()"]
+    end
+
+    subgraph "Infrastructure Layer - ADAPTER"
+        ADAPTER["PostgresJsonListingRepository\nSQLAlchemy + ListingDataMapper"]
+        MODEL["ListingModel\nSQLAlchemy table: bidding_listing"]
+        DB[("PostgreSQL Database")]
+    end
+
+    subgraph "Config Layer - PROVIDER"
+        PROV["providers.Singleton(\n  PostgresJsonListingRepository,\n  db_session=session\n)"]
+    end
+
+    subgraph "Application Layer - HANDLER"
+        HDL["place_bid handler\nlisting_repository: ListingRepository"]
+    end
+
+    HDL -->|"type hint asks for"| PORT
+    PROV -->|"resolves to"| ADAPTER
+    ADAPTER -->|"implements"| PORT
+    ADAPTER --> MODEL --> DB
+    PROV -.->|"injects concrete instance into"| HDL
+
+    classDef domain fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#000;
+    classDef infra fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#000;
+    classDef config fill:#f8d7da,stroke:#dc3545,stroke-width:2px,color:#000;
+    classDef app fill:#cce5ff,stroke:#007bff,stroke-width:2px,color:#000;
+
+    class PORT domain;
+    class ADAPTER,MODEL,DB infra;
+    class PROV config;
+    class HDL app;
+```
+
+### How the Handler Gets Called (The Decorator Registry)
+
+The other piece of "magic" is: *how does the `place_bid` function get called when it's just a function definition?*
+
+The `@bidding_module.handler(PlaceBidCommand)` decorator **registers** the function at import time — it stores `{PlaceBidCommand: place_bid}` in a dictionary. The function is never called directly.
+
+Here's the chain:
+
+1. **Import time** — Python loads `place_bid.py`, the decorator runs and stores the mapping in `bidding_module`'s internal registry
+2. **App startup** — [container.py line 63](../src/config/container.py): `application.include_submodule(bidding_module)` merges that registry into the main `Application`
+3. **Runtime** — When the API dispatches `PlaceBidCommand(...)`, the `Application` looks up: *"Who handles `PlaceBidCommand`?"* → finds `place_bid` → calls it with injected dependencies
+
+```mermaid
+sequenceDiagram
+    participant PY as Python Import
+    participant DEC as @bidding_module.handler
+    participant REG as Handler Registry
+    participant APP as Application
+    participant API as API Route
+    participant DI as ContainerProvider
+    participant HDL as place_bid function
+
+    Note over PY,DEC: Step 1: Import Time (app startup)
+    PY->>DEC: Python imports place_bid.py
+    DEC->>REG: Store PlaceBidCommand -> place_bid()
+
+    Note over APP,REG: Step 2: App Startup
+    APP->>REG: include_submodule(bidding_module)
+    REG-->>APP: All handler mappings merged
+
+    Note over API,HDL: Step 3: Runtime (HTTP request arrives)
+    API->>APP: dispatch PlaceBidCommand(listing_id, bidder_id, amount)
+    APP->>REG: Lookup handler for PlaceBidCommand
+    REG-->>APP: place_bid function
+
+    APP->>DI: What does place_bid need? (inspect type hints)
+    DI-->>APP: listing_repository = PostgresJsonListingRepository(session)
+
+    APP->>HDL: place_bid(command, listing_repository=concrete_instance)
+    HDL-->>APP: Command executed successfully
+```
+
+### Why This Architecture Matters
+
+The beauty is that **swapping databases requires changing exactly one file**: `container.py`. If you wanted MongoDB instead of PostgreSQL:
+
+1. Write a new adapter: `MongoListingRepository(ListingRepository)` — implements the same port
+2. Change one line in `container.py`:
+   ```python
+   # Before
+   bidding_listing_repository = providers.Singleton(PostgresJsonListingRepository, ...)
+   # After
+   bidding_listing_repository = providers.Singleton(MongoListingRepository, ...)
+   ```
+3. **Zero changes** to any handler, entity, rule, or event
+
+---
+
+## Part 6: Event Handlers — Cross-Module Communication
 
 The third type of handler in the Application Layer responds to **Domain Events** (which we learned about in Chapter 2). Event handlers are how different modules talk to each other without direct coupling.
 

@@ -25,11 +25,14 @@ Currently, events are fired synchronously within the transaction context.
 **The Improvement:** Utilize a message broker and worker queue to process asynchronous infrastructure tasks outside the main HTTP request lifecycle.
 - **Why it's crucial:** When a user books a truck via WhatsApp, you need to send an email receipt, ping a GPS API to find the nearest truck, and notify the driver. Doing this synchronously blocks the server response, causing a delayed reply to the user. Fast webhooks require delegating slow tasks to background workers.
 
-## 4. Ditching the "Magic" Frameworks
-The current version of `python-ddd` abstracts away core architectural concepts (Unit of Work, Event Dispatching) behind the 3rd-party `lato` library.
+## 4. Ditching the "Magic" Frameworks — Remove `lato` Dependency
+The current version of `python-ddd` abstracts away core architectural concepts (Unit of Work, Event Dispatching) behind the 3rd-party `lato` library. **Critically, `lato` is maintained by a single developer**, making it a supply chain risk sitting in the most foundational layer of the codebase (`seedwork`). The `Command` base class, `ApplicationModule` handler registry, and dependency resolution all flow through `lato` — meaning an abandoned or breaking update could compromise the entire application architecture.
 
-**The Improvement:** Architecture should not be a pip dependency; it should be explicitly modeled in the codebase.
-- **Why it's crucial:** Building the `EventBus`, `TransactionContext`, and Use Case handlers from scratch ensures developers understand exactly where transactions begin and end. *(Note: The older custom `seedwork` did this beautifully before `lato` was introduced.)*
+**The Improvement:** Architecture should not be a pip dependency; it should be explicitly modeled in the codebase. Replace `lato` with custom implementations of:
+- `Command` / `Query` base classes (thin Pydantic `BaseModel` wrappers — ~10 lines each)
+- `ApplicationModule` handler registry (a dictionary mapping message types to handler functions — ~50 lines)
+- Dependency resolution via type-hint inspection (already partially implemented in `seedwork/application/__init__.py`'s `DependencyProvider`)
+- **Why it's crucial:** Building the `EventBus`, `TransactionContext`, and Use Case handlers from scratch ensures developers understand exactly where transactions begin and end, and eliminates a single-maintainer dependency from the most critical layer. *(Note: The older custom `seedwork` did this beautifully before `lato` was introduced.)*
 
 ## 5. Integration with External Infrastructure
 **The Improvement:** Cleanly abstract third-party services (like Stripe for payments or Twilio/Meta for WhatsApp) behind interfaces, keeping the core domain pure.

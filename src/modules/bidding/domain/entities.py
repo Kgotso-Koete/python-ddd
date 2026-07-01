@@ -12,6 +12,7 @@ from modules.bidding.domain.rules import (
     BidCanBeRetracted,
     ListingCanBeCancelled,
     PriceOfPlacedBidMustBeGreaterOrEqualThanNextMinimumPrice,
+    SellerCannotBidOnOwnListing,
 )
 from modules.bidding.domain.value_objects import Bid, Bidder, Seller
 from seedwork.domain.entities import AggregateRoot
@@ -57,6 +58,11 @@ class Listing(AggregateRoot[GenericUUID]):
     # public commands
     def place_bid(self, bid: Bid):
         """Public method"""
+        self.check_rule(
+            SellerCannotBidOnOwnListing(
+                seller_id=str(self.seller.id), bidder_id=str(bid.bidder.id)
+            )
+        )
         self.check_rule(
             PriceOfPlacedBidMustBeGreaterOrEqualThanNextMinimumPrice(
                 current_price=bid.max_price, next_minimum_price=self.next_minimum_price

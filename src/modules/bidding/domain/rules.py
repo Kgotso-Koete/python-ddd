@@ -52,3 +52,13 @@ class ListingCanBeCancelled(BusinessRule):
             and self.no_bids_were_placed
         )
         return not can_be_cancelled
+
+
+class SellerCannotBidOnOwnListing(BusinessRule):
+    __message = "A seller cannot bid on their own listing"
+
+    seller_id: str
+    bidder_id: str
+
+    def is_broken(self) -> bool:
+        return self.seller_id == self.bidder_id

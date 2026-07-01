@@ -239,3 +239,29 @@ def test_cannot_cancel_listing_with_bids():
 
     with pytest.raises(BusinessRuleValidationException, match="ListingCanBeCancelled"):
         listing.cancel()
+
+
+@pytest.mark.unit
+def test_seller_cannot_bid_on_own_listing():
+    now = datetime.utcnow()
+    seller_id = GenericUUID.next_id()
+    seller = Seller(id=seller_id)
+    bidder = Bidder(id=seller_id)  # Bidder ID matches Seller ID!
+    
+    listing = Listing(
+        id=Listing.next_id(),
+        seller=seller,
+        ask_price=Money(10),
+        starts_at=now,
+        ends_at=now + timedelta(hours=1),
+    )
+    
+    bid = Bid(
+        max_price=Money(100),
+        bidder=bidder,
+        placed_at=now,
+    )
+    
+    with pytest.raises(BusinessRuleValidationException, match="SellerCannotBidOnOwnListing"):
+        listing.place_bid(bid)
+

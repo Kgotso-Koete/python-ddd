@@ -98,15 +98,15 @@ A **Command** is a data object that represents an **intent to change state**. It
 Open [seedwork/application/commands.py](../src/seedwork/application/commands.py):
 
 ```python
-from lato import Command as LatoCommand
+from seedwork.foundation import Command as FoundationCommand
 from pydantic import ConfigDict
 
-class Command(LatoCommand):
+class Command(FoundationCommand):
     """Abstract base class for all commands"""
     model_config = ConfigDict(arbitrary_types_allowed=True)
 ```
 
-Commands inherit from `lato`'s `Command` (which itself is a Pydantic `BaseModel`). This means every command is:
+Commands inherit from `foundations`'s `Command` (which itself is a Pydantic `BaseModel`). This means every command is:
 - **Immutable** — once created, its data doesn't change
 - **Serializable** — can be sent over a message bus
 - **Validated** — Pydantic validates types automatically
@@ -205,13 +205,13 @@ A **Query** is the read-side counterpart of a Command. It represents a **request
 Open [seedwork/application/queries.py](../src/seedwork/application/queries.py):
 
 ```python
-from lato import Command
+from seedwork.foundation import Command
 
 class Query(Command):
     """Base class for all queries"""
 ```
 
-> **Wait, `Query` inherits from `Command`?** Yes — in the `lato` framework, both Commands and Queries are message types dispatched through the same handler mechanism. The semantic difference (write vs read) is enforced by convention, not by the type system.
+> **Wait, `Query` inherits from `Command`?** Yes — in the `foundation` framework, both Commands and Queries are message types dispatched through the same handler mechanism. The semantic difference (write vs read) is enforced by convention, not by the type system.
 
 ### A Real Query: `GetBiddingDetails`
 
@@ -649,7 +649,7 @@ How does the system know which handler belongs to which Command? Through the `Ap
 Open [modules/bidding/application/__init__.py](../src/modules/bidding/application/__init__.py):
 
 ```python
-from lato import ApplicationModule
+from seedwork.foundation import ApplicationModule
 import importlib
 
 bidding_module = ApplicationModule("bidding")

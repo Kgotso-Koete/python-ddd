@@ -1,4 +1,4 @@
-from lato import ApplicationModule
+from seedwork.foundation import ApplicationModule
 import importlib
 
 

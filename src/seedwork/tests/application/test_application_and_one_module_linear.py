@@ -71,7 +71,7 @@ def on_exit_transaction_context(ctx, exc_type, exc_val, exc_tb):
     """Save events in outbox, End transaction"""
 
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.integration
 def test_mono_module_command_linear_flow():
     global app

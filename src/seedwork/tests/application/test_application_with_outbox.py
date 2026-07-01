@@ -9,7 +9,7 @@ from seedwork.application.events import EventResult, IntegrationEvent
 from seedwork.domain.events import DomainEvent
 
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_command_execution_returns_integration_events():
     """

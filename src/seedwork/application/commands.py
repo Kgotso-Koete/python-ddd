@@ -1,7 +1,7 @@
-from lato import Command as LatoCommand
+from seedwork.foundation import Command as FoundationCommand
 from pydantic import ConfigDict
 
 
-class Command(LatoCommand):
+class Command(FoundationCommand):
     """Abstract base class for all commands"""
     model_config = ConfigDict(arbitrary_types_allowed=True)

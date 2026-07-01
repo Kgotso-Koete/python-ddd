@@ -1,4 +1,4 @@
-from lato import Command
+from seedwork.foundation import Command
 
 from modules.catalog.application import catalog_module
 from modules.catalog.domain.entities import Listing

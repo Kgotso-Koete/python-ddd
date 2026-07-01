@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from lato import Application
+from seedwork.foundation import Application
 
 from api.dependencies import get_application
 from api.models.bidding import BiddingResponse, PlaceBidRequest

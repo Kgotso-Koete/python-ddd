@@ -3,7 +3,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from typing import Annotated
 
-from lato import Application, TransactionContext
+from seedwork.foundation import Application, TransactionContext
 from api.dependencies import get_application, get_transaction_context
 from modules.catalog.application.query.get_all_listings import GetAllListings
 

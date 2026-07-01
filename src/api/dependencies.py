@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
-from lato import Application, TransactionContext
+from seedwork.foundation import Application, TransactionContext
 
 from modules.iam.application.services import IamService
 from modules.iam.domain.entities import User
@@ -11,7 +11,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 async def get_application(request: Request) -> Application:
-    return request.state.lato_application
+    return request.state.foundation_application
 
 
 async def get_transaction_context(

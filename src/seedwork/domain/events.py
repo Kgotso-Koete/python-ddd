@@ -1,4 +1,4 @@
-from lato import Event
+from seedwork.foundation import Event
 
 
 class DomainEvent(Event):

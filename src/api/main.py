@@ -87,8 +87,8 @@ async def entity_not_found_exception_handler(
 
 
 @app.middleware("http")
-async def add_lato_application(request: Request, call_next):
-    request.state.lato_application = container.application()
+async def add_foundation_application(request: Request, call_next):
+    request.state.foundation_application = container.application()
     return await call_next(request)
 
 

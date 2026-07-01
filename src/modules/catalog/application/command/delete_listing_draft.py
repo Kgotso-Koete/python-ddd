@@ -9,7 +9,7 @@ from modules.catalog.domain.rules import (
     PublishedListingMustNotBeDeleted,
 )
 from seedwork.application.command_handlers import CommandResult
-from lato import Command, TransactionContext
+from seedwork.foundation import Command, TransactionContext
 from seedwork.domain.mixins import check_rule
 from seedwork.domain.value_objects import GenericUUID
 

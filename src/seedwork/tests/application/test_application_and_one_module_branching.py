@@ -73,7 +73,7 @@ def create_app():
     return app
 
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.integration
 def test_mono_module_command_branching_flow():
     """This tests the branching code flow:

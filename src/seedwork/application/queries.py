@@ -1,4 +1,4 @@
-from lato import Command
+from seedwork.foundation import Command
 
 
 class Query(Command):

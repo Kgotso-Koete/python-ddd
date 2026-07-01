@@ -17,7 +17,7 @@ class PingSent(DomainEvent):
     pass
 
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_application_config():
     app = Application("TestApp", 0.1)
@@ -27,7 +27,7 @@ def test_application_config():
 
 
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_application_handles_command():
     app = Application()
@@ -39,7 +39,7 @@ def test_application_handles_command():
     assert app.get_command_handler(SendPing()) is handle_ping
 
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_application_handles_domain_event():
     app = Application()
@@ -50,7 +50,7 @@ def test_application_handles_domain_event():
 
     assert app.get_event_handlers(PingSent()) == [handle_ping_sent]
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_app_parameters_injection():
     app = Application(correlation_id=1)
@@ -62,7 +62,7 @@ def test_app_parameters_injection():
     result = app.execute(SendPing())
     assert result.payload == 1
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_transaction_context_parameter_injection():
     app = Application()
@@ -75,7 +75,7 @@ def test_transaction_context_parameter_injection():
         result = ctx.execute(SendPing())
         assert result.payload == 1
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_transaction_context_parameter_override():
     app = Application(correlation_id=1)
@@ -88,7 +88,7 @@ def test_transaction_context_parameter_override():
         result = ctx.execute(SendPing())
         assert result.payload == 2
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_transaction_context_enter_exit():
     app = Application(correlation_id=1)
@@ -111,7 +111,7 @@ def test_transaction_context_enter_exit():
     assert ctx.entered
     assert ctx.exited
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_transaction_context_middleware():
     app = Application(trace=[])
@@ -135,7 +135,7 @@ def test_transaction_context_middleware():
 
     assert app.dependency_provider["trace"] == ["middleware1", "middleware2"]
 
-@pytest.mark.skip(reason="seedwork Application deprecated by lato")
+@pytest.mark.skip(reason="seedwork Application deprecated by foundation")
 @pytest.mark.unit
 def test_missing_dependency():
     app = Application()

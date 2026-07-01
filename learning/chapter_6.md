@@ -33,7 +33,7 @@ class Container(containers.DeclarativeContainer):
     catalog_module = providers.Singleton(create_catalog_module)
     bidding_module = providers.Singleton(create_bidding_module)
     
-    # 4. The main Lato Application (Event Dispatcher & Command Bus)
+    # 4. The main Foundation Application (Event Dispatcher & Command Bus)
     application = providers.Singleton(
         create_application,
         catalog_module=catalog_module,
@@ -102,17 +102,17 @@ Here is the complete journey of a request from the outside world down to the dat
 sequenceDiagram
     participant User as Web Browser
     participant API as FastAPI Router
-    participant Lato as Application (Command Bus)
+    participant Foundation as Application (Command Bus)
     participant Handler as PlaceBid Handler
     participant Repo as ListingRepository
     participant DB as PostgreSQL
 
     User->>API: POST /bidding/123/place_bid
     Note over API: Parses JSON, creates PlaceBidCommand
-    API->>Lato: app.execute_async(command)
+    API->>Foundation: app.execute_async(command)
     
-    Lato->>Lato: Open TransactionContext
-    Lato->>Handler: Dispatch command
+    Foundation->>Foundation: Open TransactionContext
+    Foundation->>Handler: Dispatch command
     
     Handler->>Repo: get_by_id(123)
     Repo->>DB: SELECT data FROM bidding_listing
@@ -123,11 +123,11 @@ sequenceDiagram
     Handler->>Handler: listing.place_bid(bid)
     Note over Handler: Domain rules are checked in memory!
     
-    Lato->>Lato: Close TransactionContext
-    Lato->>Repo: persist_all()
+    Foundation->>Foundation: Close TransactionContext
+    Foundation->>Repo: persist_all()
     Repo->>DB: UPDATE bidding_listing SET data=...
     
-    Lato-->>API: Command Complete
+    Foundation-->>API: Command Complete
     API-->>User: 200 OK (JSON Response)
 ```
 

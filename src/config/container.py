@@ -10,7 +10,7 @@ from dependency_injector import containers, providers
 from dependency_injector.containers import Container
 from dependency_injector.providers import Dependency, Factory, Provider, Singleton
 from dependency_injector.wiring import Provide, inject  # noqa
-from lato import Application, DependencyProvider, TransactionContext
+from seedwork.foundation import Application, DependencyProvider, TransactionContext
 from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session

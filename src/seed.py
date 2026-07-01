@@ -27,20 +27,20 @@ async def seed_database():
     Base.metadata.create_all(db_engine)
 
     # Deterministic UUIDs
-    seller_id = generate_uuid("alice.seller@example.com")
-    buyer_id = generate_uuid("bob.buyer@example.com")
-    admin_id = generate_uuid("admin@example.com")
-    staff_id = generate_uuid("staff@example.com")
+    miles_id = generate_uuid("miles.morales@example.com")
+    ororo_id = generate_uuid("ororo.munroe@example.com")
+    matt_id = generate_uuid("matt.murdock@example.com")
+    bruce_id = generate_uuid("bruce.wayne@example.com")
 
     # IAM service is synchronous
     with app.transaction_context() as ctx:
         iam_service = ctx[IamService]
         
         users_to_create = [
-            (seller_id, "alice.seller@example.com", "password123", "seller_token"),
-            (buyer_id, "bob.buyer@example.com", "password123", "buyer_token"),
-            (admin_id, "admin@example.com", "password123", "admin_token"),
-            (staff_id, "staff@example.com", "password123", "staff_token"),
+            (miles_id, "miles.morales@example.com", "password123", "miles_token"),
+            (ororo_id, "ororo.munroe@example.com", "password123", "ororo_token"),
+            (matt_id, "matt.murdock@example.com", "password123", "matt_token"),
+            (bruce_id, "bruce.wayne@example.com", "password123", "bruce_token"),
         ]
 
         for u_id, email, pwd, token in users_to_create:
@@ -59,28 +59,84 @@ async def seed_database():
 
     listings = [
         {
-            "id": generate_uuid("Vintage Leather Jacket"),
-            "title": "Vintage Leather Jacket",
-            "desc": "Authentic 1980s leather jacket in excellent condition.",
-            "price": 150,
-            "seller_id": seller_id,
+            "id": generate_uuid("Xbox Series X"),
+            "title": "Xbox Series X",
+            "desc": "Lightly used Xbox Series X with 1 controller.",
+            "price": 400,
+            "seller_id": miles_id,
             "publish": True,
         },
         {
-            "id": generate_uuid("Professional DSLR Camera"),
-            "title": "Professional DSLR Camera",
-            "desc": "Used for 2 years, comes with 2 lenses.",
-            "price": 800,
-            "seller_id": admin_id,
+            "id": generate_uuid("PlayStation 5"),
+            "title": "PlayStation 5 Disc Edition",
+            "desc": "Brand new in box.",
+            "price": 450,
+            "seller_id": matt_id,
             "publish": True,
         },
         {
-            "id": generate_uuid("Antique Wooden Chair"),
-            "title": "Antique Wooden Chair",
-            "desc": "Needs some restoration.",
-            "price": 50,
-            "seller_id": seller_id,
-            "publish": False,
+            "id": generate_uuid("Steam Deck OLED"),
+            "title": "Steam Deck OLED 512GB",
+            "desc": "Perfect condition, comes with carrying case.",
+            "price": 500,
+            "seller_id": bruce_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("Nintendo Switch"),
+            "title": "Nintendo Switch OLED",
+            "desc": "Includes dock and Joy-Cons.",
+            "price": 300,
+            "seller_id": ororo_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("NVIDIA RTX 4090"),
+            "title": "NVIDIA GeForce RTX 4090 Founders Edition",
+            "desc": "Used for light gaming, never mined on.",
+            "price": 1500,
+            "seller_id": bruce_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("ASUS ROG Ally"),
+            "title": "ASUS ROG Ally Z1 Extreme",
+            "desc": "Great handheld, basically a portable PC.",
+            "price": 600,
+            "seller_id": matt_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("Analogue Pocket"),
+            "title": "Analogue Pocket - Black",
+            "desc": "Plays original Game Boy cartridges perfectly.",
+            "price": 220,
+            "seller_id": ororo_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("PlayStation Portal"),
+            "title": "PlayStation Portal Remote Player",
+            "desc": "Stream your PS5 anywhere in the house.",
+            "price": 200,
+            "seller_id": miles_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("AMD Radeon RX 7900 XTX"),
+            "title": "AMD Radeon RX 7900 XTX 24GB",
+            "desc": "Flagship AMD GPU, dominates 4K gaming.",
+            "price": 950,
+            "seller_id": matt_id,
+            "publish": True,
+        },
+        {
+            "id": generate_uuid("Meta Quest 3"),
+            "title": "Meta Quest 3 128GB",
+            "desc": "Amazing mixed reality headset.",
+            "price": 500,
+            "seller_id": bruce_id,
+            "publish": True,
         }
     ]
 
@@ -111,21 +167,40 @@ async def seed_database():
 
     # Place bids
     bids = [
-        {
-            "listing_id": generate_uuid("Vintage Leather Jacket"),
-            "bidder_id": buyer_id,
-            "amount": 160
-        },
-        {
-            "listing_id": generate_uuid("Vintage Leather Jacket"),
-            "bidder_id": staff_id,
-            "amount": 180
-        },
-        {
-            "listing_id": generate_uuid("Professional DSLR Camera"),
-            "bidder_id": buyer_id,
-            "amount": 850
-        }
+        # Xbox (2 bids)
+        {"listing_id": generate_uuid("Xbox Series X"), "bidder_id": ororo_id, "amount": 420},
+        {"listing_id": generate_uuid("Xbox Series X"), "bidder_id": bruce_id, "amount": 450},
+        
+        # PS5 (1 bid)
+        {"listing_id": generate_uuid("PlayStation 5"), "bidder_id": miles_id, "amount": 500},
+        
+        # Steam Deck (3 bids)
+        {"listing_id": generate_uuid("Steam Deck OLED"), "bidder_id": ororo_id, "amount": 550},
+        {"listing_id": generate_uuid("Steam Deck OLED"), "bidder_id": miles_id, "amount": 600},
+        {"listing_id": generate_uuid("Steam Deck OLED"), "bidder_id": matt_id, "amount": 650},
+        
+        # Nintendo Switch (0 bids)
+        
+        # RTX 4090 (3 bids)
+        {"listing_id": generate_uuid("NVIDIA RTX 4090"), "bidder_id": matt_id, "amount": 1600},
+        {"listing_id": generate_uuid("NVIDIA RTX 4090"), "bidder_id": ororo_id, "amount": 1700},
+        {"listing_id": generate_uuid("NVIDIA RTX 4090"), "bidder_id": miles_id, "amount": 1800},
+        
+        # ASUS ROG Ally (1 bid)
+        {"listing_id": generate_uuid("ASUS ROG Ally"), "bidder_id": bruce_id, "amount": 650},
+        
+        # Analogue Pocket (2 bids)
+        {"listing_id": generate_uuid("Analogue Pocket"), "bidder_id": miles_id, "amount": 230},
+        {"listing_id": generate_uuid("Analogue Pocket"), "bidder_id": bruce_id, "amount": 250},
+        
+        # PlayStation Portal (0 bids)
+        
+        # RX 7900 XTX (1 bid)
+        {"listing_id": generate_uuid("AMD Radeon RX 7900 XTX"), "bidder_id": ororo_id, "amount": 1000},
+        
+        # Meta Quest 3 (2 bids)
+        {"listing_id": generate_uuid("Meta Quest 3"), "bidder_id": matt_id, "amount": 520},
+        {"listing_id": generate_uuid("Meta Quest 3"), "bidder_id": miles_id, "amount": 550},
     ]
 
     for bid in bids:

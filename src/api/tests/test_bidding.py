@@ -62,3 +62,19 @@ async def test_place_bid(app, api_client):
     json = response.json()
     if response.status_code != 200:
         raise Exception(f"API Error: {json}")
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_place_bid_rejects_negative_amount(app, api_client):
+    listing_id = GenericUUID(int=1)
+    seller_id = GenericUUID(int=2)
+    bidder_id = GenericUUID(int=3)
+    await setup_app_for_bidding_tests(app, listing_id, seller_id, bidder_id)
+
+    url = f"/bidding/{listing_id}/place_bid"
+
+    response = api_client.post(url, json={"bidder_id": str(bidder_id), "amount": -5})
+    
+    # Assert that FastAPI returns a 422 Unprocessable Entity
+    assert response.status_code == 422

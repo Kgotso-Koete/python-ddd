@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid5, NAMESPACE_DNS
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from seedwork.domain.value_objects import GenericUUID
 
@@ -28,7 +28,7 @@ class BiddingResponse(BaseModel):
 
 class PlaceBidRequest(BaseModel):
     bidder_id: GenericUUID
-    amount: float
+    amount: float = Field(gt=0)
     
     class Config:
         arbitrary_types_allowed = True

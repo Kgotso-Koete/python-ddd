@@ -183,7 +183,25 @@ poe test_integration -k "api"
 Currently, if someone sends an invalid bid amount (like a negative number), the application waits until the request reaches the Domain layer to fail. 
 1. Open [api/models/bidding.py](../src/api/models/bidding.py).
 2. Modify the `PlaceBidRequest` Pydantic model. Add a Pydantic `Field(gt=0)` to the `amount` property so that FastAPI rejects negative bids immediately with a `422 Unprocessable Entity` before the request even reaches the Application layer.
-3. Start the API (`poe start`) and try to submit a negative bid via the Swagger UI (`http://localhost:8000/docs`).
+3. Now, let's prove it works by writing an integration test! Open `src/api/tests/test_bidding.py` and add this test at the bottom:
+
+```python
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_place_bid_rejects_negative_amount(app, api_client):
+    listing_id = GenericUUID(int=1)
+    seller_id = GenericUUID(int=2)
+    bidder_id = GenericUUID(int=3)
+    await setup_app_for_bidding_tests(app, listing_id, seller_id, bidder_id)
+
+    url = f"/bidding/{listing_id}/place_bid"
+    response = api_client.post(url, json={"bidder_id": str(bidder_id), "amount": -5})
+    
+    # FastAPI should immediately reject this before it hits the Domain
+    assert response.status_code == 422
+```
+
+4. Run `poe test_integration -k "api"` and watch your new test pass!
 
 > [!NOTE]
 > Congratulations! You have now traced the entire architecture of a Python DDD application from the outer HTTP shell down to the deepest Domain business rules. You are ready to start refactoring real-world monolithic codebases into this enterprise-grade structure!

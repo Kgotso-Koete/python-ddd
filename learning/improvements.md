@@ -4,6 +4,16 @@ While `python-ddd` serves as an excellent foundation with modern tooling (FastAP
 
 This document unifies the key architectural lessons and ideas to implement in the future to ensure the codebase remains maintainable, decoupled, and scalable.
 
+## Progress Checklist
+- [ ] **1. Output Boundaries and The Presenter Pattern**
+- [ ] **2. Process Managers (Sagas) for Cross-Module Orchestration**
+- [ ] **3. Background Task Queues (Redis/RQ/Celery)**
+- [x] **4. Ditching the "Magic" Frameworks — Remove `lato` Dependency** (Internalized as `seedwork.foundation`)
+- [ ] **5. Integration with External Infrastructure**
+- [ ] **6. Proper Application Layer Testing**
+- [ ] **7. Strict Package Boundaries**
+- [x] **8. Missing Business Rules:** Added `SellerCannotBidOnOwnListing` to `modules/bidding`.
+
 ## 1. Output Boundaries and The Presenter Pattern
 Currently, `python-ddd` tightly couples the Application layer to the API response format. A Command or Query is executed, and raw JSON is returned.
 
@@ -43,7 +53,9 @@ The current version of `python-ddd` abstracts away core architectural concepts (
 Currently, application-layer tests frequently spin up a real test database (Postgres or SQLite).
 
 **The Improvement:** Test Application Use Cases using **In-Memory Repositories** and **Mocked Output Boundaries**.
-- **Why it's crucial:** This proves the entire application flow (Command -> Handler -> Domain -> Repo -> EventBus -> Presenter) works flawlessly in milliseconds, without the massive overhead of database I/O. It separates slow integration tests from fast architectural tests.
+- **Why it's crucial:** This proves the entire application flow (Command → Handler → Domain → Repo → EventBus → Presenter) works flawlessly in milliseconds, without the massive overhead of database I/O. It separates slow integration tests from fast architectural tests.
+- **How to do it:** The Foundation already ships with `override_ctx` in `src/seedwork/foundation/testing.py`. Use it to temporarily swap a real database-backed `ListingRepository` for a fast in-memory fake during tests. This utility exists in the codebase but is **currently unused** — see [Chapter 7](./chapter_7.md) for details.
+- **Bonus:** The deprecated tests in `src/seedwork/tests/application/` (currently skipped via `@pytest.mark.skip`) should also be rewritten to verify the new `foundation` components directly.
 
 ## 7. Strict Package Boundaries
 Currently, all modules live inside a single `src/modules/` directory, relying on developer discipline to prevent cross-imports (e.g., the `bidding` code accidentally importing a database model from `catalog`).

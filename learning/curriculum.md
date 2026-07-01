@@ -46,3 +46,8 @@ Throughout this curriculum, we will frequently refer to the following cornerston
 *   **Concept:** How the outside world (Web APIs, UIs) talks to your application and how dependencies are wired together.
 *   **Codebase Focus:** `src/api/routers/bidding.py` (FastAPI) and `src/config/container.py` (Dependency Injector).
 *   **Book Ref:** Cosmic Python Chapter 13 (Dependency Injection).
+
+### Chapter 7: The Foundation (Message & Command Bus)
+*   **Concept:** Understanding the inner workings of the internal message bus, event dispatching, and transaction context management (formerly `lato`).
+*   **Codebase Focus:** `src/seedwork/foundation/` (specifically `application.py`, `transaction_context.py`, and `dependency_provider.py`).
+*   **Book Ref:** Cosmic Python Chapter 8 (Events and the Message Bus) & Chapter 9 (The Message Bus).

@@ -92,6 +92,8 @@ Since `Payment` context will be provided by a 3rd party payments provider (via R
 
 `poe test`
 
+`poe compose_down` - to cleanly stop the database container when you're done
+
 Visit `http://localhost:8000/ui` in your browser to test the API using a UI.
 
 Visit `http://localhost:8000/docs` in your browser to view and interact with the automatically generated FastAPI Swagger documentation. The schemas are pre-populated with default IDs from the seed script.

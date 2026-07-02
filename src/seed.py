@@ -235,6 +235,12 @@ async def seed_database():
         {"listing_id": generate_uuid("Expired Laptop"), "bidder_id": miles_id, "amount": 1300},
     ]
 
+    from modules.bidding.application.command.place_bid import PlaceBidOutputBoundary, PlaceBidOutputDto
+    
+    class SeedPlaceBidPresenter(PlaceBidOutputBoundary):
+        def present(self, output_dto: PlaceBidOutputDto) -> None:
+            pass
+    
     for bid in bids:
         try:
             place_bid_cmd = PlaceBidCommand(
@@ -242,7 +248,9 @@ async def seed_database():
                 bidder_id=bid["bidder_id"],
                 amount=bid["amount"]
             )
-            await app.execute_async(place_bid_cmd)
+            async with app.transaction_context() as ctx:
+                ctx.set_dependency("presenter", SeedPlaceBidPresenter())
+                await ctx.execute_async(place_bid_cmd)
             logger.info(f"Placed bid of {bid['amount']} on listing {bid['listing_id']} by bidder {bid['bidder_id']}")
         except Exception as e:
             logger.info(f"Bid already placed or couldn't be placed: {e} ({type(e).__name__})")

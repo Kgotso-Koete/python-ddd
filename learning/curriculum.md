@@ -51,3 +51,8 @@ Throughout this curriculum, we will frequently refer to the following cornerston
 *   **Concept:** Understanding the inner workings of the internal message bus, event dispatching, and transaction context management (formerly `lato`).
 *   **Codebase Focus:** `src/seedwork/foundation/` (specifically `application.py`, `transaction_context.py`, and `dependency_provider.py`).
 *   **Book Ref:** Cosmic Python Chapter 8 (Events and the Message Bus) & Chapter 9 (The Message Bus).
+
+### Chapter 8: Output Boundaries and Presenters
+*   **Concept:** Decoupling the Application Layer from the Delivery Mechanism by returning data through abstract interfaces.
+*   **Codebase Focus:** `modules/bidding/application/command/place_bid.py` and `api/routers/bidding.py` (e.g. `ApiPlaceBidPresenter`).
+*   **Book Ref:** Clean Architecture Chapter 23 (Presenters and Humble Objects).

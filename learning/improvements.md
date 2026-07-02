@@ -5,7 +5,7 @@ While `python-ddd` serves as an excellent foundation with modern tooling (FastAP
 This document unifies the key architectural lessons and ideas to implement in the future to ensure the codebase remains maintainable, decoupled, and scalable.
 
 ## Progress Checklist
-- [ ] **1. Output Boundaries and The Presenter Pattern**
+- [x] **1. Output Boundaries and The Presenter Pattern**
 - [ ] **2. Process Managers (Sagas) for Cross-Module Orchestration**
 - [ ] **3. Background Task Queues (Redis/RQ/Celery)**
 - [x] **4. Ditching the "Magic" Frameworks — Remove `lato` Dependency** (Internalized as `seedwork.foundation`)
@@ -14,6 +14,10 @@ This document unifies the key architectural lessons and ideas to implement in th
 - [ ] **7. Strict Package Boundaries**
 - [ ] **8. Explicit Facades / Application Interfaces**
 - [x] **9. Missing Business Rules:** Added `SellerCannotBidOnOwnListing` to `modules/bidding`.
+- [ ] **10. Reusable UI Authentication via FastAPI Dependencies**
+- [ ] **11. REST API JWT Authentication**
+
+---
 
 ## 1. Output Boundaries and The Presenter Pattern
 Currently, `python-ddd` tightly couples the Application layer to the API response format. A Command or Query is executed, and raw JSON is returned.
@@ -74,8 +78,16 @@ Currently, inter-module communication is somewhat informal or relies solely on e
 - **Why it's crucial:** When one module absolutely must query another module for data, having an explicit Facade hides all internal complexities and database models of the queried module, providing a strict contract.
 - **Proof of Concept:** The `clean-architecture` repo uses strict facades (e.g., `PaymentsFacade`) to ensure modules don't directly access each other's internals.
 
-## 9. Low Hanging Fruit
-
-### Missing Business Rules
+## 9. Missing Business Rules
 - **The Improvement:** Add a `SellerCannotBidOnOwnListing` Business Rule to `src/modules/bidding/domain/rules.py` and enforce it in `Listing.place_bid()`.
 - **Why it's crucial:** The domain currently allows a seller to bid on their own listing (shill bidding). Catching and fixing these missing real-world constraints is a great exercise for practicing Domain-Driven Design in the `domain` layer.
+
+## 10. Reusable UI Authentication via FastAPI Dependencies
+Currently, the `src/web/router.py` duplicates the same block of code across multiple protected routes to verify the `access_token` cookie, redirect on failure, and fetch the current user. If a developer forgets to copy-paste this block on a new route, it creates a severe security vulnerability.
+
+**The Improvement:** Abstract this logic into a reusable FastAPI `Depends()` function (e.g., `get_current_ui_user(request: Request) -> User`). This ensures DRY code and enforces UI security cleanly at the route signature level without manual copy-pasting.
+
+## 11. REST API JWT Authentication
+Currently, the REST API endpoints (like `/bidding/{listing_id}/place_bid`) blindly trust the `bidder_id` provided in the JSON payload without verifying the user's identity. 
+
+**The Improvement:** Implement standard JWT Bearer token authentication for the API routes using FastAPI's `HTTPBearer` security schemes. The API should extract the user ID directly from the validated token rather than trusting the request body.

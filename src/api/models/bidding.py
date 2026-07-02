@@ -38,3 +38,8 @@ class PlaceBidRequest(BaseModel):
                 "amount": 160.0
             }
         }
+
+
+class PlaceBidResponse(BaseModel):
+    is_winning: bool
+    current_price: float

@@ -182,9 +182,14 @@ async def place_bid(
 ):
     from fastapi import status
     from fastapi.responses import RedirectResponse
-    from modules.bidding.application.command.place_bid import PlaceBidCommand
+    from modules.bidding.application.command.place_bid import PlaceBidCommand, PlaceBidOutputBoundary, PlaceBidOutputDto
     from seedwork.domain.value_objects import GenericUUID
     from modules.iam.application.services import IamService
+    
+    class WebPlaceBidPresenter(PlaceBidOutputBoundary):
+        """Web UI presenter - discards DTO since the UI just redirects after placing a bid."""
+        def present(self, output_dto: PlaceBidOutputDto) -> None:
+            pass  # Web UI doesn't need the response data
     
     # 1. Authenticate user from cookie
     access_token = request.cookies.get("access_token")
@@ -204,7 +209,9 @@ async def place_bid(
     )
     
     try:
-        await app.execute_async(command)
+        presenter = WebPlaceBidPresenter()
+        ctx.set_dependency("presenter", presenter)
+        await ctx.execute_async(command)
         
 
         # If successful, redirect back to the listing to see the updated bid

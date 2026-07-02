@@ -219,7 +219,28 @@ Open the following files and look purely at their `import` statements at the top
 
 ---
 
-## Part 5: Where does TDD fit into this?
+## Part 5: CQRS & Where are the Use Cases?
+
+If you have looked at other Clean Architecture repositories, you might be used to seeing a folder literally called `use_cases/` with files like `PlaceBidUseCase.py`. 
+
+In `python-ddd`, you won't find a `use_cases` folder. Why? Because this repository implements a pattern called **CQRS (Command Query Responsibility Segregation)**.
+
+CQRS dictates that every Use Case should be explicitly split into one of two categories:
+1. **Commands:** Operations that *change* the state of the system (Write). e.g., Placing a bid, publishing a listing.
+2. **Queries:** Operations that *read* the state of the system but do not change anything (Read). e.g., Viewing listing details.
+
+### How to find a Use Case
+Instead of a `use_cases` folder, look inside the `application/` layer of any module. You will see two folders: `command/` and `query/`.
+
+**A "Use Case" in this codebase consists of two things:**
+1. **The Message:** A simple data class representing the inputs (e.g., `PlaceBidCommand`).
+2. **The Handler:** The actual execution logic of the Use Case, which is the function decorated with `@handler`.
+
+**Example:** If you want to see the "Place Bid" Use Case, you look in `src/modules/bidding/application/command/place_bid.py`. The `async def place_bid()` handler function *is* the Use Case!
+
+---
+
+## Part 6: Where does TDD fit into this?
 
 Test-Driven Development (TDD) and Domain-Driven Design (DDD) work perfectly together. Because the Domain Layer (Entities and Value Objects) has absolutely zero dependencies—no database, no FastAPI, no internet—we can write pure Python Unit Tests that run in *milliseconds*.
 

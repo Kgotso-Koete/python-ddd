@@ -193,6 +193,8 @@ def resolve_provider_by_type(container: Container, cls: type) -> Optional[Provid
             return issubclass(provider.cls, cls)
         elif isinstance(provider, Dependency):
             return issubclass(provider.instance_of, cls)
+        elif isinstance(provider, providers.Object):
+            return isinstance(provider(), cls)
 
         return False
 
@@ -222,7 +224,7 @@ class ContainerProvider(DependencyProvider):
         ):
             return True
         if type(identifier) is str:
-            return identifier in self.container.providers
+            return hasattr(self.container, identifier) or identifier in self.container.providers
         return False
 
     def register_dependency(self, identifier, dependency_instance):

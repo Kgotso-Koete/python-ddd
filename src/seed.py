@@ -10,6 +10,8 @@ from modules.catalog.application.command.publish_listing_draft import PublishLis
 from modules.bidding.application.command.place_bid import PlaceBidCommand
 from seedwork.domain.value_objects import Money
 from seedwork.infrastructure.database import Base
+from sqlalchemy import text
+from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -137,6 +139,32 @@ async def seed_database():
             "price": 500,
             "seller_id": bruce_id,
             "publish": True,
+        },
+        {
+            "id": generate_uuid("Unpublished Game Console"),
+            "title": "Super Nintendo Classic (DRAFT)",
+            "desc": "I haven't published this yet.",
+            "price": 150,
+            "seller_id": miles_id,
+            "publish": False,
+        },
+        {
+            "id": generate_uuid("Expired Laptop"),
+            "title": "MacBook Pro M1 (EXPIRED)",
+            "desc": "This listing has already ended.",
+            "price": 1200,
+            "seller_id": ororo_id,
+            "publish": True,
+            "expire_manually": True
+        },
+        {
+            "id": generate_uuid("Vintage Camera"),
+            "title": "Leica M6 (EXPIRED NO BIDS)",
+            "desc": "This camera auction ended with zero bids.",
+            "price": 2500,
+            "seller_id": bruce_id,
+            "publish": True,
+            "expire_manually": True
         }
     ]
 
@@ -201,6 +229,10 @@ async def seed_database():
         # Meta Quest 3 (2 bids)
         {"listing_id": generate_uuid("Meta Quest 3"), "bidder_id": matt_id, "amount": 520},
         {"listing_id": generate_uuid("Meta Quest 3"), "bidder_id": miles_id, "amount": 550},
+        
+        # Expired Laptop (2 bids)
+        {"listing_id": generate_uuid("Expired Laptop"), "bidder_id": matt_id, "amount": 1250},
+        {"listing_id": generate_uuid("Expired Laptop"), "bidder_id": miles_id, "amount": 1300},
     ]
 
     for bid in bids:
@@ -214,6 +246,20 @@ async def seed_database():
             logger.info(f"Placed bid of {bid['amount']} on listing {bid['listing_id']} by bidder {bid['bidder_id']}")
         except Exception as e:
             logger.info(f"Bid already placed or couldn't be placed: {e} ({type(e).__name__})")
+
+    # Manually expire specific listings
+    logger.info("Manually expiring designated listings...")
+    with app.transaction_context() as ctx:
+        session = ctx["db_session"]
+        expired_ids = [str(item["id"]) for item in listings if item.get("expire_manually")]
+        if expired_ids:
+            past_date = datetime.utcnow() - timedelta(days=2)
+            for l_id in expired_ids:
+                session.execute(
+                    text("UPDATE bidding_listing SET data = jsonb_set(data, '{ends_at}', CAST(:past_date AS jsonb)) WHERE id = :id"),
+                    {"past_date": f'"{past_date.isoformat()}"', "id": l_id}
+                )
+            logger.info(f"Expired {len(expired_ids)} listings in the bidding schema.")
 
 if __name__ == "__main__":
     asyncio.run(seed_database())

@@ -31,8 +31,8 @@ def test_place_one_bid():
         id=Listing.next_id(),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(days=1),
+        ends_at=now + timedelta(days=1),
     )
     listing.place_bid(bid)
     assert listing.highest_bid == Bid(max_price=Money(20), bidder=bidder, placed_at=now)
@@ -49,8 +49,8 @@ def test_place_two_bids_second_buyer_outbids():
         id=GenericUUID(int=4),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(days=1),
+        ends_at=now + timedelta(days=1),
     )
     assert listing.current_price == Money(10)
     assert listing.next_minimum_price == Money(11)
@@ -77,8 +77,8 @@ def test_place_two_bids_second_buyer_fails_to_outbid():
         id=GenericUUID(int=4),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(days=1),
+        ends_at=now + timedelta(days=1),
     )
 
     # bidder1 places a bid
@@ -104,8 +104,8 @@ def test_place_two_bids_second_buyer_fails_to_outbid_with_same_amount():
         id=GenericUUID(int=4),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(days=1),
+        ends_at=now + timedelta(days=1),
     )
     listing.place_bid(Bid(bidder=bidder1, max_price=Money(30), placed_at=now))
     listing.place_bid(Bid(bidder=bidder2, max_price=Money(30), placed_at=now))
@@ -122,8 +122,8 @@ def test_place_two_bids_by_same_bidder():
         id=Listing.next_id(),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(days=1),
+        ends_at=now + timedelta(days=1),
     )
     listing.place_bid(Bid(max_price=Money(20), bidder=bidder, placed_at=now))
     listing.place_bid(Bid(max_price=Money(30), bidder=bidder, placed_at=now))
@@ -137,40 +137,66 @@ def test_place_two_bids_by_same_bidder():
 def test_cannot_place_bid_if_listing_ended():
     seller = Seller(id=GenericUUID.next_id())
     bidder = Bidder(id=GenericUUID.next_id())
+    now = datetime.utcnow()
     listing = Listing(
         id=Listing.next_id(),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(hours=2),
+        ends_at=now - timedelta(hours=1),
     )
     bid = Bid(
-        max_price=Money(10),
+        max_price=Money(100),
         bidder=bidder,
-        placed_at=datetime.utcnow() + timedelta(seconds=1),
+        placed_at=now,
     )
     with pytest.raises(
         BusinessRuleValidationException,
-        match="PriceOfPlacedBidMustBeGreaterOrEqualThanNextMinimumPrice",
+        match="ListingMustBeActiveToPlaceBid",
+    ):
+        listing.place_bid(bid)
+
+
+@pytest.mark.unit
+def test_cannot_place_bid_if_listing_not_started():
+    seller = Seller(id=GenericUUID.next_id())
+    bidder = Bidder(id=GenericUUID.next_id())
+    now = datetime.utcnow()
+    listing = Listing(
+        id=Listing.next_id(),
+        seller=seller,
+        ask_price=Money(10),
+        starts_at=now + timedelta(hours=1),
+        ends_at=now + timedelta(hours=2),
+    )
+    bid = Bid(
+        max_price=Money(100),
+        bidder=bidder,
+        placed_at=now,
+    )
+    with pytest.raises(
+        BusinessRuleValidationException,
+        match="ListingMustBeActiveToPlaceBid",
     ):
         listing.place_bid(bid)
 
 
 @pytest.mark.unit
 def test_retract_bid():
+    now = datetime.utcnow()
     seller = Seller(id=GenericUUID.next_id())
     bidder = Bidder(id=GenericUUID.next_id())
     listing = Listing(
         id=Listing.next_id(),
         seller=seller,
         ask_price=Money(10),
-        starts_at=datetime.utcnow(),
-        ends_at=datetime.utcnow(),
+        starts_at=now - timedelta(days=1),
+        ends_at=now + timedelta(days=1),
     )
     bid = Bid(
         max_price=Money(100),
         bidder=bidder,
-        placed_at=datetime.utcnow() - timedelta(seconds=1),
+        placed_at=now,
     )
     listing.place_bid(bid)
     with pytest.raises(BusinessRuleValidationException, match="BidCanBeRetracted"):

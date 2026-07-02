@@ -11,6 +11,7 @@ from modules.bidding.domain.events import (
 from modules.bidding.domain.rules import (
     BidCanBeRetracted,
     ListingCanBeCancelled,
+    ListingMustBeActiveToPlaceBid,
     PriceOfPlacedBidMustBeGreaterOrEqualThanNextMinimumPrice,
     SellerCannotBidOnOwnListing,
 )
@@ -58,6 +59,11 @@ class Listing(AggregateRoot[GenericUUID]):
     # public commands
     def place_bid(self, bid: Bid):
         """Public method"""
+        self.check_rule(
+            ListingMustBeActiveToPlaceBid(
+                starts_at=self.starts_at, ends_at=self.ends_at
+            )
+        )
         self.check_rule(
             SellerCannotBidOnOwnListing(
                 seller_id=str(self.seller.id), bidder_id=str(bid.bidder.id)

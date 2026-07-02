@@ -19,7 +19,7 @@ async def setup_app_for_bidding_tests(app, listing_id, seller_id, bidder_id):
             password="password",
             access_token="token1",
         )
-        ctx["logger"].debug(f"Added seller: {seller_id}")
+        logger.debug(f"Added seller: {seller_id}")
 
         iam_service.create_user(
             user_id=bidder_id,
@@ -27,7 +27,7 @@ async def setup_app_for_bidding_tests(app, listing_id, seller_id, bidder_id):
             password="password",
             access_token="token2",
         )
-        ctx["logger"].debug(f"Added bidder: {bidder_id}")
+        logger.debug(f"Added bidder: {bidder_id}")
 
     await app.execute_async(
         CreateListingDraftCommand(

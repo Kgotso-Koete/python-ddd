@@ -62,3 +62,14 @@ class SellerCannotBidOnOwnListing(BusinessRule):
 
     def is_broken(self) -> bool:
         return self.seller_id == self.bidder_id
+
+
+class ListingMustBeActiveToPlaceBid(BusinessRule):
+    __message = "Cannot place bid: The listing is not currently active"
+
+    starts_at: datetime
+    ends_at: datetime
+    now: datetime = Field(default_factory=datetime.utcnow)
+
+    def is_broken(self) -> bool:
+        return self.now >= self.ends_at or self.now < self.starts_at

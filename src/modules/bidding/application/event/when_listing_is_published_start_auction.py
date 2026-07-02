@@ -15,7 +15,7 @@ async def when_listing_is_published_start_auction(
         id=event.listing_id,
         seller=Seller(id=event.seller_id),
         ask_price=event.ask_price,
-        starts_at=datetime.now(),
-        ends_at=datetime.now() + timedelta(days=7),
+        starts_at=datetime.utcnow(),
+        ends_at=datetime.utcnow() + timedelta(days=7),
     )
     listing_repository.add(listing)

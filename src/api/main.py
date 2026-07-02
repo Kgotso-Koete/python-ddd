@@ -65,7 +65,7 @@ except ValueError as e:
 
 @app.exception_handler(DomainException)
 async def domain_exception_handler(request: Request, exc: DomainException):
-    if container.config.DEBUG:
+    if container.config().DEBUG:
         raise exc
 
     return JSONResponse(

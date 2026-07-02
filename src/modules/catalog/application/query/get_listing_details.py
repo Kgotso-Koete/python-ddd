@@ -1,3 +1,4 @@
+import abc
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -10,12 +11,22 @@ from seedwork.application.query_handlers import QueryResult
 from seedwork.domain.value_objects import GenericUUID
 
 
+class GetListingDetailsOutputBoundary(abc.ABC):
+    @abc.abstractmethod
+    def present(self, output_dto: dict) -> None:
+        pass
+
+
 class GetListingDetails(Query):
     listing_id: GenericUUID
 
 
 @catalog_module.handler(GetListingDetails)
-def get_listing_details(query: GetListingDetails, session: Session) -> QueryResult:
+def get_listing_details(
+    query: GetListingDetails, 
+    session: Session,
+    presenter: GetListingDetailsOutputBoundary
+) -> None:
     row = session.query(ListingModel).filter_by(id=query.listing_id).one()
     details = map_listing_model_to_dao(row)
-    return details
+    presenter.present(details)

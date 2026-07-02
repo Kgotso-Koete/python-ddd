@@ -127,22 +127,40 @@ async def listing_details(
     success: str = None,
     ctx: TransactionContext = Depends(get_transaction_context)
 ):
-    from modules.catalog.application.query.get_listing_details import GetListingDetails
-    from modules.bidding.application.query.get_bidding_details import GetBiddingDetails
+    from modules.catalog.application.query.get_listing_details import GetListingDetails, GetListingDetailsOutputBoundary
+    from modules.bidding.application.query.get_bidding_details import GetBiddingDetails, GetBiddingDetailsOutputBoundary
+    from modules.bidding.application.query.model_mappers import ListingDAO
     from seedwork.domain.value_objects import GenericUUID
+    
+    class WebGetListingDetailsPresenter(GetListingDetailsOutputBoundary):
+        def __init__(self):
+            self.response = None
+        def present(self, output_dto: dict) -> None:
+            self.response = output_dto
+            
+    class WebGetBiddingDetailsPresenter(GetBiddingDetailsOutputBoundary):
+        def __init__(self):
+            self.response = None
+        def present(self, output_dto: ListingDAO) -> None:
+            self.response = output_dto
     
     listing_uuid = GenericUUID(listing_id)
     
     # 1. Fetch catalog details
     listing_query = GetListingDetails(listing_id=listing_uuid)
-    # The application layer returns a dictionary for listing_query
-    listing_result = await app.execute_async(listing_query)
+    listing_presenter = WebGetListingDetailsPresenter()
+    ctx.set_dependency("presenter", listing_presenter)
+    await ctx.execute_async(listing_query)
+    listing_result = listing_presenter.response
     
     # 2. Fetch auction/bidding details
     auction_result = None
     try:
         auction_query = GetBiddingDetails(listing_id=listing_uuid)
-        auction_result = await app.execute_async(auction_query)
+        auction_presenter = WebGetBiddingDetailsPresenter()
+        ctx.set_dependency("presenter", auction_presenter)
+        await ctx.execute_async(auction_query)
+        auction_result = auction_presenter.response
     except Exception:
         # Bidding might not exist if not published or errors
         pass
@@ -218,14 +236,37 @@ async def place_bid(
         return RedirectResponse(url=f"/ui/catalog/{listing_id}?success=Bid+placed+successfully", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         # 3. If bidding fails (e.g. DomainException) we render the page with an error
-        from modules.catalog.application.query.get_listing_details import GetListingDetails
-        from modules.bidding.application.query.get_bidding_details import GetBiddingDetails
+        from modules.catalog.application.query.get_listing_details import GetListingDetails, GetListingDetailsOutputBoundary
+        from modules.bidding.application.query.get_bidding_details import GetBiddingDetails, GetBiddingDetailsOutputBoundary
+        from modules.bidding.application.query.model_mappers import ListingDAO
+        
+        class WebGetListingDetailsPresenter(GetListingDetailsOutputBoundary):
+            def __init__(self):
+                self.response = None
+            def present(self, output_dto: dict) -> None:
+                self.response = output_dto
+                
+        class WebGetBiddingDetailsPresenter(GetBiddingDetailsOutputBoundary):
+            def __init__(self):
+                self.response = None
+            def present(self, output_dto: ListingDAO) -> None:
+                self.response = output_dto
+                
         listing_uuid = GenericUUID(listing_id)
-        listing_result = await app.execute_async(GetListingDetails(listing_id=listing_uuid))
+        
+        listing_query = GetListingDetails(listing_id=listing_uuid)
+        listing_presenter = WebGetListingDetailsPresenter()
+        ctx.set_dependency("presenter", listing_presenter)
+        await ctx.execute_async(listing_query)
+        listing_result = listing_presenter.response
         
         auction_result = None
         try:
-            auction_result = await app.execute_async(GetBiddingDetails(listing_id=listing_uuid))
+            auction_query = GetBiddingDetails(listing_id=listing_uuid)
+            auction_presenter = WebGetBiddingDetailsPresenter()
+            ctx.set_dependency("presenter", auction_presenter)
+            await ctx.execute_async(auction_query)
+            auction_result = auction_presenter.response
         except Exception:
             pass
             

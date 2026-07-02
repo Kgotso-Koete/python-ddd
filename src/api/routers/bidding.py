@@ -8,7 +8,13 @@ from api.models.bidding import BiddingResponse, PlaceBidRequest, PlaceBidRespons
 from config.container import inject
 from modules.bidding.application.command import PlaceBidCommand, RetractBidCommand
 from modules.bidding.application.command.place_bid import PlaceBidOutputBoundary, PlaceBidOutputDto
-from modules.bidding.application.query.get_bidding_details import GetBiddingDetails
+from modules.bidding.application.query.get_bidding_details import (
+    GetBiddingDetails,
+    GetBiddingDetailsOutputBoundary
+)
+from modules.bidding.application.query.model_mappers import ListingDAO
+from seedwork.foundation import TransactionContext
+from api.dependencies import get_transaction_context
 
 router = APIRouter()
 
@@ -17,30 +23,42 @@ Inspired by https://developer.ebay.com/api-docs/buy/offer/types/api:Bidding
 """
 
 
+class ApiGetBiddingDetailsPresenter(GetBiddingDetailsOutputBoundary):
+    def __init__(self):
+        self.response = None
+
+    def present(self, output_dto: ListingDAO) -> None:
+        mapped_bids = []
+        for bid in output_dto.bids:
+            mapped_bids.append({
+                "amount": bid["max_price"]["amount"],
+                "currency": bid["max_price"]["currency"],
+                "bidder_id": bid["bidder_id"],
+                "bidder_username": "Unknown",
+            })
+
+        self.response = BiddingResponse(
+            listing_id=output_dto.id,
+            auction_end_date=output_dto.ends_at,
+            bids=mapped_bids,
+        )
+
+
 @router.get("/bidding/{listing_id}", tags=["bidding"], response_model=BiddingResponse)
-@inject
 async def get_bidding_details_of_listing(
-    listing_id, app: Annotated[Application, Depends(get_application)]
+    listing_id, 
+    ctx: TransactionContext = Depends(get_transaction_context)
 ):
     """
     Shows listing details
     """
     query = GetBiddingDetails(listing_id=listing_id)
-    result = await app.execute_async(query)
-    mapped_bids = []
-    for bid in result.bids:
-        mapped_bids.append({
-            "amount": bid["max_price"]["amount"],
-            "currency": bid["max_price"]["currency"],
-            "bidder_id": bid["bidder_id"],
-            "bidder_username": "Unknown",
-        })
-
-    return BiddingResponse(
-        listing_id=result.id,
-        auction_end_date=result.ends_at,
-        bids=mapped_bids,
-    )
+    presenter = ApiGetBiddingDetailsPresenter()
+    ctx.set_dependency("presenter", presenter)
+    
+    await ctx.execute_async(query)
+    
+    return presenter.response
 
 
 class ApiPlaceBidPresenter(PlaceBidOutputBoundary):
@@ -88,9 +106,9 @@ async def place_bid(
     tags=["bidding"],
     response_model=BiddingResponse,
 )
-@inject
 async def retract_bid(
-    listing_id, app: Annotated[Application, Depends(get_application)]
+    listing_id, 
+    ctx: TransactionContext = Depends(get_transaction_context)
 ):
     """
     Retracts a bid from a listing
@@ -99,22 +117,12 @@ async def retract_bid(
         listing_id=listing_id,
         bidder_id="",
     )
-    app.execute(command)
+    await ctx.execute_async(command)
 
     query = GetBiddingDetails(listing_id=listing_id)
-    query_result = app.execute_query(query)
-    payload = query_result.payload
-    mapped_bids = []
-    for bid in payload.bids:
-        mapped_bids.append({
-            "amount": bid["max_price"]["amount"],
-            "currency": bid["max_price"]["currency"],
-            "bidder_id": bid["bidder_id"],
-            "bidder_username": "Unknown",
-        })
-
-    return BiddingResponse(
-        listing_id=str(payload.id),
-        auction_end_date=payload.ends_at,
-        bids=mapped_bids,
-    )
+    presenter = ApiGetBiddingDetailsPresenter()
+    ctx.set_dependency("presenter", presenter)
+    
+    await ctx.execute_async(query)
+    
+    return presenter.response

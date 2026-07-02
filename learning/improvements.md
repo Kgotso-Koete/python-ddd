@@ -12,7 +12,8 @@ This document unifies the key architectural lessons and ideas to implement in th
 - [ ] **5. Integration with External Infrastructure**
 - [ ] **6. Proper Application Layer Testing**
 - [ ] **7. Strict Package Boundaries**
-- [x] **8. Missing Business Rules:** Added `SellerCannotBidOnOwnListing` to `modules/bidding`.
+- [ ] **8. Explicit Facades / Application Interfaces**
+- [x] **9. Missing Business Rules:** Added `SellerCannotBidOnOwnListing` to `modules/bidding`.
 
 ## 1. Output Boundaries and The Presenter Pattern
 Currently, `python-ddd` tightly couples the Application layer to the API response format. A Command or Query is executed, and raw JSON is returned.
@@ -28,12 +29,14 @@ Currently, modules (`bidding`, `catalog`) are distinct but lack examples of comp
 **The Improvement:** Introduce **Process Managers** (or Sagas).
 - A Process Manager acts as a centralized coordinator. It listens to Domain Events from one module and issues Commands to other modules.
 - **Why it's crucial:** Truck hiring is deeply workflow-based. You don't want the `Orders` domain to be tightly coupled to `Dispatch`. Instead, a `BookingProcessManager` listens for a `BookingPaid` event, notifies the trucking company, waits for acceptance, and then issues a `DispatchTruckCommand`.
+- **Proof of Concept:** The `clean-architecture` repo implements this perfectly in `auctioning_platform/processes/paying_for_won_item/`, serving as a fantastic template for how to decouple cross-module workflows.
 
 ## 3. Background Task Queues (Redis/RQ/Celery)
 Currently, events are fired synchronously within the transaction context.
 
-**The Improvement:** Utilize a message broker and worker queue to process asynchronous infrastructure tasks outside the main HTTP request lifecycle.
+**The Improvement:** Implement the **Outbox Pattern** and utilize a message broker and worker queue to process asynchronous infrastructure tasks outside the main HTTP request lifecycle.
 - **Why it's crucial:** When a user books a truck via WhatsApp, you need to send an email receipt, ping a GPS API to find the nearest truck, and notify the driver. Doing this synchronously blocks the server response, causing a delayed reply to the user. Fast webhooks require delegating slow tasks to background workers.
+- **Proof of Concept:** The `clean-architecture` repo uses an `outbox.py` implementation alongside background queues (Redis/RQ) to process these side-effects reliably, completely protecting the API's response times.
 
 ## 4. Ditching the "Magic" Frameworks — Remove `lato` Dependency
 The current version of `python-ddd` abstracts away core architectural concepts (Unit of Work, Event Dispatching) behind the 3rd-party `lato` library. **Critically, `lato` is maintained by a single developer**, making it a supply chain risk sitting in the most foundational layer of the codebase (`seedwork`). The `Command` base class, `ApplicationModule` handler registry, and dependency resolution all flow through `lato` — meaning an abandoned or breaking update could compromise the entire application architecture.
@@ -62,8 +65,16 @@ Currently, all modules live inside a single `src/modules/` directory, relying on
 
 **The Improvement:** Break modules into physically separate, installable Python packages with their own `setup.py` or `pyproject.toml` files.
 - **Why it's crucial:** This enforces strict architectural boundaries at the package manager level—modules physically cannot cross-import unless explicitly declared as a dependency, forcing developers to communicate via explicit Domain Events or API contracts.
+- **Proof of Concept:** The `clean-architecture` repo enforces this strictly. Notice how its `auctions`, `payments`, and `shipping` modules each have their own `setup.py`, making it physically impossible for them to bypass the architecture.
 
-## 8. Low Hanging Fruit
+## 8. Explicit Facades / Application Interfaces
+Currently, inter-module communication is somewhat informal or relies solely on events.
+
+**The Improvement:** Expose strict interfaces or "Facades" for modules that must communicate synchronously.
+- **Why it's crucial:** When one module absolutely must query another module for data, having an explicit Facade hides all internal complexities and database models of the queried module, providing a strict contract.
+- **Proof of Concept:** The `clean-architecture` repo uses strict facades (e.g., `PaymentsFacade`) to ensure modules don't directly access each other's internals.
+
+## 9. Low Hanging Fruit
 
 ### Missing Business Rules
 - **The Improvement:** Add a `SellerCannotBidOnOwnListing` Business Rule to `src/modules/bidding/domain/rules.py` and enforce it in `Listing.place_bid()`.

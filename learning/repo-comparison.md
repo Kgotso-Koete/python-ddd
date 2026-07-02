@@ -126,3 +126,14 @@ The `test_bidding.py` file is a masterclass in domain testing:
 4. **Week 4**: Add `src/whatsapp/` as a delivery mechanism alongside `src/api/`, using the same Commands/Queries
 
 > **Tip:** The key insight of Clean Architecture is that **WhatsApp and Web are just different delivery mechanisms**. They both call the same `Commands` and `Queries`. Your domain doesn't care if the user typed "Book truck" in WhatsApp or clicked a button on a webpage.
+
+---
+
+## Post-Comparison: Ideas to Borrow from `clean-architecture`
+
+While `python-ddd` is the better base, `clean-architecture` successfully implements several advanced DDD concepts that should be ported over:
+
+1. **Process Managers (Sagas):** The `clean-architecture` repo uses an elegant Saga (`processes/paying_for_won_item`) to coordinate multi-module workflows asynchronously. This prevents the `Auctions` module from being tightly coupled to the `Payments` module.
+2. **The Outbox Pattern & Background Workers:** By using `db_infrastructure/outbox.py` and a background queue (Redis/RQ), it processes slow side-effects (like sending emails) outside the main HTTP transaction, keeping API responses lightning fast.
+3. **Strict Physical Boundaries:** Each module in `clean-architecture` has its own `setup.py`, making them separate, installable Python packages. This forces absolute architectural decoupling at the Python interpreter level, whereas `python-ddd` currently relies on developer discipline.
+4. **Explicit Facades:** It uses strict interfaces (e.g., `PaymentsFacade`) when modules must communicate synchronously, hiding all internal module complexities.

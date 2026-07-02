@@ -107,3 +107,6 @@ Visit `http://localhost:8081` in your browser to view the database using PGAdmin
   - **Connection -> Username**: `postgres`
   - **Connection -> Password**: `password`
 
+Run the Command Line Interface (CLI):
+`poe cli` - This will execute headless commands and queries directly against the Application layer, demonstrating how background workers or cron jobs interact with the system.
+

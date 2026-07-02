@@ -213,3 +213,41 @@ return templates.TemplateResponse(
 ```
 
 By enforcing this boundary on Queries as well as Commands, we achieve a **100% pure Application Layer**. It doesn't know about JSON, HTTP Responses, or Jinja2 Templates. It just says, *"Here is my raw business data. Whatever mechanism called me—be it an API, a Web UI, or a terminal script—can format this data however they like."*
+
+---
+
+## The CLI Presenter
+
+To truly prove that our Application Layer is framework-agnostic, we can look at the Command Line Interface (CLI) implementation in `src/cli/__main__.py`.
+
+A CLI doesn't need JSON or HTML; it just needs to print text to the terminal. By defining a `CliGetAllListingsPresenter`, we can reuse the exact same `GetAllListings` Use Case to output data safely to the terminal:
+
+```python
+class CliGetAllListingsPresenter(GetAllListingsOutputBoundary):
+    def __init__(self):
+        self.response = None
+        
+    def present(self, output_dto: list[dict]) -> None:
+        self.response = output_dto
+
+# Execution via CLI:
+async with app.transaction_context() as ctx:
+    presenter = CliGetAllListingsPresenter()
+    ctx.set_dependency("presenter", presenter)
+    await ctx.execute_async(GetAllListings())
+    
+    # Print the raw DTO data nicely to the terminal
+    for listing in presenter.response:
+        print(f"[{listing['id']}] {listing['title']}")
+```
+
+### Why use a CLI in a web application?
+
+In practical commercial situations, you often need to execute business logic outside the context of a user interacting with a website. Common scenarios include:
+
+1. **Cron Jobs & Scheduled Tasks**: Running headless background scripts (e.g., a nightly job to expire old listings, generate invoices, or send marketing emails).
+2. **Data Migrations & Backfilling**: Safely seeding a database or migrating data using the actual business rules rather than raw SQL.
+3. **Emergency Admin Operations**: Allowing developers to execute commands (like suspending an abusive user) securely from a server terminal when an Admin UI hasn't been built yet.
+4. **Message Queue Consumers**: Workers (like Celery) act identically to CLIs; they consume messages in the background and execute Use Cases without any HTTP context.
+
+Because our Application Layer forces Output Boundaries, these background jobs can execute the same core logic as the FastAPI endpoints without crashing or requiring fake HTTP requests!

@@ -10,7 +10,10 @@ from modules.catalog.application.command import (
     DeleteListingDraftCommand,
     PublishListingDraftCommand,
 )
-from modules.catalog.application.query.get_all_listings import GetAllListings
+from modules.catalog.application.query.get_all_listings import (
+    GetAllListings,
+    GetAllListingsOutputBoundary
+)
 from modules.catalog.application.query.get_listing_details import (
     GetListingDetails, 
     GetListingDetailsOutputBoundary
@@ -33,14 +36,25 @@ class ApiGetListingDetailsPresenter(GetListingDetailsOutputBoundary):
         self.response = ListingReadModel(**output_dto)
 
 
+class ApiGetAllListingsPresenter(GetAllListingsOutputBoundary):
+    def __init__(self):
+        self.response = None
+
+    def present(self, output_dto: list[dict]) -> None:
+        self.response = dict(data=[ListingReadModel(**item) for item in output_dto])
+
+
 @router.get("/catalog", tags=["catalog"], response_model=ListingIndexModel)
-async def get_all_listings(app: Annotated[Application, Depends(get_application)]):
+async def get_all_listings(ctx: TransactionContext = Depends(get_transaction_context)):
     """
     Shows all published listings in the catalog
     """
     query = GetAllListings()
-    result = await app.execute_async(query)
-    return dict(data=result)
+    presenter = ApiGetAllListingsPresenter()
+    ctx.set_dependency("presenter", presenter)
+    
+    await ctx.execute_async(query)
+    return presenter.response
 
 
 @router.get("/catalog/{listing_id}", tags=["catalog"], response_model=ListingReadModel)

@@ -17,8 +17,20 @@ async def home(
     app: Annotated[Application, Depends(get_application)],
     ctx: TransactionContext = Depends(get_transaction_context)
 ):
+    from modules.catalog.application.query.get_all_listings import GetAllListingsOutputBoundary
+    
+    class WebGetAllListingsPresenter(GetAllListingsOutputBoundary):
+        def __init__(self):
+            self.response = None
+        def present(self, output_dto: list[dict]) -> None:
+            self.response = output_dto
+            
     query = GetAllListings()
-    result = await app.execute_async(query)
+    presenter = WebGetAllListingsPresenter()
+    ctx.set_dependency("presenter", presenter)
+    
+    await ctx.execute_async(query)
+    result = presenter.response
     
     from modules.iam.application.services import IamService
     from seedwork.domain.value_objects import GenericUUID

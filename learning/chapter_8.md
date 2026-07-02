@@ -173,3 +173,43 @@ To run specifically the `test_presenters.py` file:
 ```bash
 pytest src/modules/bidding/tests/application/test_presenters.py
 ```
+
+---
+
+## Command vs Query Presenters
+
+When we apply the Output Boundary / Presenter pattern to **Queries** (e.g. `GetAllListings` or `GetListingDetails`), we notice a distinct difference in how the Web UI presenters behave compared to **Commands**.
+
+### Command Presenters (e.g., `PlaceBidCommand`)
+When the Web UI executes a Command (like placing a bid), it doesn't actually care about the returned data. It just wants to know if the command succeeded so it can redirect the user to a new page.
+Therefore, the Web Presenter for a Command is often a "Dummy":
+```python
+class WebPlaceBidPresenter(PlaceBidOutputBoundary):
+    def present(self, output_dto: PlaceBidOutputDto) -> None:
+        pass  # Web UI ignores the data and redirects
+```
+
+### Query Presenters (e.g., `GetAllListings`)
+When the Web UI executes a Query, its entire purpose is to retrieve data to render an HTML page. 
+Therefore, the Web Presenter for a Query MUST capture the data so the router can pass it into the Jinja template:
+```python
+class WebGetAllListingsPresenter(GetAllListingsOutputBoundary):
+    def __init__(self):
+        self.response = None
+        
+    def present(self, output_dto: list[dict]) -> None:
+        self.response = output_dto  # Must capture the data!
+        
+# In the router:
+listing_presenter = WebGetAllListingsPresenter()
+ctx.set_dependency("presenter", listing_presenter)
+await ctx.execute_async(query)
+
+# Now we have the data for Jinja!
+return templates.TemplateResponse(
+    "catalog.html", 
+    {"listings": listing_presenter.response} 
+)
+```
+
+By enforcing this boundary on Queries as well as Commands, we achieve a **100% pure Application Layer**. It doesn't know about JSON, HTTP Responses, or Jinja2 Templates. It just says, *"Here is my raw business data. Whatever mechanism called me—be it an API, a Web UI, or a terminal script—can format this data however they like."*

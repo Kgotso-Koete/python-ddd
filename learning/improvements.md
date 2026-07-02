@@ -16,6 +16,7 @@ This document unifies the key architectural lessons and ideas to implement in th
 - [x] **9. Missing Business Rules:** Added `SellerCannotBidOnOwnListing` to `modules/bidding`.
 - [ ] **10. Reusable UI Authentication via FastAPI Dependencies**
 - [ ] **11. REST API JWT Authentication**
+- [ ] **12. Pagination for API and Web UI**
 
 ---
 
@@ -91,3 +92,12 @@ Currently, the `src/web/router.py` duplicates the same block of code across mult
 Currently, the REST API endpoints (like `/bidding/{listing_id}/place_bid`) blindly trust the `bidder_id` provided in the JSON payload without verifying the user's identity. 
 
 **The Improvement:** Implement standard JWT Bearer token authentication for the API routes using FastAPI's `HTTPBearer` security schemes. The API should extract the user ID directly from the validated token rather than trusting the request body.
+
+## 12. Pagination for API and Web UI
+Currently, `GetAllListings` returns every listing in the database in a single response. As the catalog grows, this will cause performance issues: slow page loads, excessive memory usage, and a poor user experience when scrolling through hundreds of items.
+
+**The Improvement:**
+- **Backend:** Update `GetAllListings` to accept `limit` and `offset` (or `page` and `page_size`) parameters. The SQL query should use `.limit()` and `.offset()` to only fetch the requested page of results. The Output DTO should include pagination metadata (total count, current page, total pages).
+- **API Layer:** Return pagination metadata alongside the data array (e.g., `{ data: [...], total: 150, page: 1, page_size: 20 }`).
+- **Web UI:** Add "Previous" / "Next" navigation buttons (or page numbers) to the catalog listing page.
+- **Why it's crucial:** Pagination is a fundamental requirement for any production system dealing with growing datasets. Without it, response times degrade linearly with data volume.

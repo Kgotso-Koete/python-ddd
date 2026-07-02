@@ -40,12 +40,20 @@ services:
       - external-network
 
   pgadmin:
-    image: dpage/pgadmin4
+    image: dpage/pgadmin4:6.21
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: root
     ports:
       - "8081:80"
+    networks:
+      - internal-network
+      - external-network
+
+  adminer:
+    image: adminer
+    ports:
+      - "8082:8080"
     networks:
       - internal-network
       - external-network

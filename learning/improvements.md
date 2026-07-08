@@ -17,6 +17,7 @@ This document unifies the key architectural lessons and ideas to implement in th
 - [ ] **10. Reusable UI Authentication via FastAPI Dependencies**
 - [ ] **11. REST API JWT Authentication**
 - [ ] **12. Pagination for API and Web UI**
+- [ ] **13. Refactoring JSONB Storage to Relational Schema**
 
 ---
 
@@ -101,3 +102,16 @@ Currently, `GetAllListings` returns every listing in the database in a single re
 - **API Layer:** Return pagination metadata alongside the data array (e.g., `{ data: [...], total: 150, page: 1, page_size: 20 }`).
 - **Web UI:** Add "Previous" / "Next" navigation buttons (or page numbers) to the catalog listing page.
 - **Why it's crucial:** Pagination is a fundamental requirement for any production system dealing with growing datasets. Without it, response times degrade linearly with data volume.
+
+## 13. Refactoring JSONB Storage to Relational Schema
+Currently, both the Catalog and Bidding modules store the entire aggregate root (the domain entity) in a single `JSONB` column named `data` (e.g., in `catalog_listing` and `bidding_listing` tables). 
+
+This is a teaching shortcut used by the repository author to demonstrate DDD concepts without the overhead of complex SQL schema design and migrations. However, for a commercial production system (such as an on-demand truck delivery application), this is an anti-pattern.
+
+**The Improvement:**
+- **Schema Migration:** Design proper relational SQL schemas using Alembic. For instance, a `Listing` table should have indexed columns for `id`, `title`, `description`, `ask_price_amount`, `ask_price_currency`, `seller_id`, etc.
+- **DataMapper Updates:** Modify `ListingDataMapper` (and others) to map the domain entity fields to these proper relational columns instead of serializing the entire object to a JSON dictionary.
+- **Why it's crucial:** 
+  - **Searchability & Indexing:** A commercial app requires querying on specific fields (e.g., finding orders by phone number, address, or reference ID). B-Tree indexes on relational columns are significantly faster and more robust than searching inside unstructured JSON.
+  - **Data Integrity:** Relational columns enforce type safety, non-null constraints, and foreign key relationships natively at the database level.
+  - **Elasticsearch Compatibility:** If you ever need to sync data to Elasticsearch for full-text search, having well-structured, relational data makes the syncing process (e.g., via Debezium or Logstash) much simpler.

@@ -13,11 +13,11 @@ This document unifies the key architectural lessons and ideas to implement in th
 - [ ] **6. Proper Application Layer Testing**
 - [ ] **7. Explicit Facades / Application Interfaces**
 - [x] **8. Ditching the "Magic" Frameworks — Remove `lato` Dependency** (Internalized as `seedwork.foundation`)
-- [ ] **9. Strict Package Boundaries**
+- [ ] ~~**9. Strict Package Boundaries** *(Not a priority for small but growing commercial enterprise)*~~
 - [ ] **10. Refactoring JSONB Storage to Relational Schema**
 - [ ] **11. Integration with External Infrastructure**
 - [ ] **12. Background Task Queues (Redis/RQ/Celery)**
-- [ ] **13. Process Managers (Sagas) for Cross-Module Orchestration**
+- [ ] ~~**13. Process Managers (Sagas) for Cross-Module Orchestration** *(Not a priority for small but growing commercial enterprise)*~~
 
 ---
 
@@ -76,7 +76,10 @@ The current version of `python-ddd` abstracts away core architectural concepts (
 - Dependency resolution via type-hint inspection (already partially implemented in `seedwork/application/__init__.py`'s `DependencyProvider`)
 - **Why it's crucial:** Building the `EventBus`, `TransactionContext`, and Use Case handlers from scratch ensures developers understand exactly where transactions begin and end, and eliminates a single-maintainer dependency from the most critical layer. *(Note: The older custom `seedwork` did this beautifully before `lato` was introduced.)*
 
-## 9. Strict Package Boundaries
+## ~~9. Strict Package Boundaries~~ *(Cancelled)*
+> [!NOTE]
+> **Why this is currently cancelled:** Putting every module into its own `setup.py` or `pyproject.toml` package is unnecessary friction that slows down development. A well-organized `src/` folder is perfectly fine for a small-to-medium team. We will avoid adding package-management overhead to the daily workflow until the team size demands it.
+
 Currently, all modules live inside a single `src/modules/` directory, relying on developer discipline to prevent cross-imports (e.g., the `bidding` code accidentally importing a database model from `catalog`).
 
 **The Improvement:** Break modules into physically separate, installable Python packages with their own `setup.py` or `pyproject.toml` files.
@@ -108,7 +111,10 @@ Currently, events are fired synchronously within the transaction context.
 - **Why it's crucial:** When a user books a truck via WhatsApp, you need to send an email receipt, ping a GPS API to find the nearest truck, and notify the driver. Doing this synchronously blocks the server response, causing a delayed reply to the user. Fast webhooks require delegating slow tasks to background workers.
 - **Proof of Concept:** The `clean-architecture` repo uses an `outbox.py` implementation alongside background queues (Redis/RQ) to process these side-effects reliably, completely protecting the API's response times.
 
-## 13. Process Managers (Sagas) for Cross-Module Orchestration
+## ~~13. Process Managers (Sagas) for Cross-Module Orchestration~~ *(Cancelled)*
+> [!NOTE]
+> **Why this is currently cancelled:** For a small growing company, if a multi-step process fails, it is far faster and cheaper for a customer service rep to fix it manually in an admin dashboard. Writing complex, stateful Saga code with automated compensating rollbacks is a massive engineering undertaking that takes focus away from building core business features.
+
 Currently, modules (`bidding`, `catalog`) are distinct but lack examples of complex, asynchronous workflows spanning multiple modules.
 
 **The Improvement:** Introduce **Process Managers** (or Sagas).

@@ -106,6 +106,14 @@ Visit `http://localhost:8081` in your browser to view the database using PGAdmin
   - **Connection -> Host name/address**: `db`
   - **Connection -> Username**: `postgres`
   - **Connection -> Password**: `password`
+- To view raw data: expand `Servers → local_db → Databases → postgres → Schemas → public → Tables`, right-click a table → **View/Edit Data → All Rows**
+
+Visit `http://localhost:8082` in your browser to view the database using Adminer (a simpler, lightweight alternative to PGAdmin).
+- **System**: `PostgreSQL`
+- **Server**: `db`
+- **Username**: `postgres`
+- **Password**: `password`
+- **Database**: `postgres`
 
 Run the Command Line Interface (CLI):
 `poe cli` - This will execute headless commands and queries directly against the Application layer, demonstrating how background workers or cron jobs interact with the system.

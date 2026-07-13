@@ -5,6 +5,8 @@ from typing import Annotated
 
 from seedwork.foundation import Application, TransactionContext
 from api.dependencies import get_application, get_transaction_context
+from web.dependencies import get_current_ui_user, get_current_ui_user_optional
+from modules.iam.domain.entities import User
 from modules.catalog.application.query.get_all_listings import GetAllListings
 
 router = APIRouter(tags=["web"])
@@ -15,7 +17,8 @@ templates = Jinja2Templates(directory="src/web/templates")
 async def home(
     request: Request,
     app: Annotated[Application, Depends(get_application)],
-    ctx: TransactionContext = Depends(get_transaction_context)
+    ctx: TransactionContext = Depends(get_transaction_context),
+    current_user: User | None = Depends(get_current_ui_user_optional)
 ):
     from modules.catalog.application.query.get_all_listings import GetAllListingsOutputBoundary
     
@@ -43,11 +46,6 @@ async def home(
         except Exception:
             listing["seller_email"] = "Unknown Seller"
     
-    current_user = None
-    access_token = request.cookies.get("access_token")
-    if access_token:
-        current_user = iam_service.find_user_by_access_token(access_token)
-    
     return templates.TemplateResponse(
         "catalog.html", 
         {"request": request, "listings": result, "current_user": current_user}
@@ -56,20 +54,9 @@ async def home(
 @router.get("/ui/catalog/new", response_class=HTMLResponse)
 async def new_listing_page(
     request: Request,
-    ctx: TransactionContext = Depends(get_transaction_context)
+    ctx: TransactionContext = Depends(get_transaction_context),
+    current_user: User = Depends(get_current_ui_user)
 ):
-    from fastapi import status
-    from fastapi.responses import RedirectResponse
-    from modules.iam.application.services import IamService
-    
-    access_token = request.cookies.get("access_token")
-    if not access_token:
-        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
-        
-    current_user = ctx[IamService].find_user_by_access_token(access_token)
-    if not current_user:
-        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
-
     return templates.TemplateResponse("create_listing.html", {"request": request, "current_user": current_user})
 
 
@@ -80,24 +67,16 @@ async def new_listing_submit(
     title: str = Form(...),
     description: str = Form(...),
     ask_price: int = Form(...),
-    ctx: TransactionContext = Depends(get_transaction_context)
+    ctx: TransactionContext = Depends(get_transaction_context),
+    current_user: User = Depends(get_current_ui_user)
 ):
     import uuid
     from fastapi import status
     from fastapi.responses import RedirectResponse
-    from modules.iam.application.services import IamService
     from modules.catalog.application.command.create_listing_draft import CreateListingDraftCommand
     from modules.catalog.application.command.publish_listing_draft import PublishListingDraftCommand
     from seedwork.domain.value_objects import GenericUUID, Money
     
-    access_token = request.cookies.get("access_token")
-    if not access_token:
-        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
-        
-    current_user = ctx[IamService].find_user_by_access_token(access_token)
-    if not current_user:
-        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
-
     listing_id = GenericUUID(str(uuid.uuid4()))
     seller_id = GenericUUID(str(current_user.id))
     
@@ -137,7 +116,8 @@ async def listing_details(
     request: Request,
     app: Annotated[Application, Depends(get_application)],
     success: str = None,
-    ctx: TransactionContext = Depends(get_transaction_context)
+    ctx: TransactionContext = Depends(get_transaction_context),
+    current_user: User | None = Depends(get_current_ui_user_optional)
 ):
     from modules.catalog.application.query.get_listing_details import GetListingDetails, GetListingDetailsOutputBoundary
     from modules.bidding.application.query.get_bidding_details import GetBiddingDetails, GetBiddingDetailsOutputBoundary
@@ -186,11 +166,6 @@ async def listing_details(
     except Exception:
         listing_result["seller_email"] = "Unknown Seller"
 
-    current_user = None
-    access_token = request.cookies.get("access_token")
-    if access_token:
-        current_user = iam_service.find_user_by_access_token(access_token)
-        
     return templates.TemplateResponse(
         "listing_details.html",
         {
@@ -208,7 +183,8 @@ async def place_bid(
     request: Request,
     app: Annotated[Application, Depends(get_application)],
     amount: int = Form(...),
-    ctx: TransactionContext = Depends(get_transaction_context)
+    ctx: TransactionContext = Depends(get_transaction_context),
+    current_user: User = Depends(get_current_ui_user)
 ):
     from fastapi import status
     from fastapi.responses import RedirectResponse
@@ -221,16 +197,7 @@ async def place_bid(
         def present(self, output_dto: PlaceBidOutputDto) -> None:
             pass  # Web UI doesn't need the response data
     
-    # 1. Authenticate user from cookie
-    access_token = request.cookies.get("access_token")
-    if not access_token:
-        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
-        
-    current_user = ctx[IamService].find_user_by_access_token(access_token)
-    if not current_user:
-        return RedirectResponse(url="/ui/login", status_code=status.HTTP_303_SEE_OTHER)
-
-    # 2. Execute command
+    # Execute command
     command = PlaceBidCommand(
         listing_id=GenericUUID(listing_id),
         bidder_id=GenericUUID(str(current_user.id)),

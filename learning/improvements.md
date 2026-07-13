@@ -6,7 +6,7 @@ This document unifies the key architectural lessons and ideas to implement in th
 
 ## Progress Checklist
 - [x] **1. Missing Business Rules:** Added `SellerCannotBidOnOwnListing` to `modules/bidding`.
-- [ ] **2. Reusable UI Authentication via FastAPI Dependencies**
+- [x] **2. Reusable UI Authentication via FastAPI Dependencies**
 - [ ] **3. REST API JWT Authentication**
 - [x] **4. Output Boundaries and The Presenter Pattern**
 - [ ] **5. Pagination for API and Web UI**

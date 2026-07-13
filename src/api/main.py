@@ -1,12 +1,13 @@
 import time
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import ValidationError
 
 from api.dependencies import oauth2_scheme  # noqa
 from api.routers import bidding, catalog, diagnostics, iam
 from web import router as web_router
+from web.dependencies import NotAuthenticatedException
 from config.api_config import ApiConfig
 from config.container import ApplicationContainer
 from seedwork.domain.exceptions import DomainException, EntityNotFoundException
@@ -84,6 +85,11 @@ async def entity_not_found_exception_handler(
             "message": f"Entity {exc.kwargs} not found in {exc.repository.__class__.__name__}"
         },
     )
+
+
+@app.exception_handler(NotAuthenticatedException)
+async def not_authenticated_exception_handler(request: Request, exc: NotAuthenticatedException):
+    return RedirectResponse(url="/ui/login", status_code=303)
 
 
 @app.middleware("http")

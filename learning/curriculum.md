@@ -56,3 +56,8 @@ Throughout this curriculum, we will frequently refer to the following cornerston
 *   **Concept:** Decoupling the Application Layer from the Delivery Mechanism by returning data through abstract interfaces.
 *   **Codebase Focus:** `modules/bidding/application/command/place_bid.py` and `api/routers/bidding.py` (e.g. `ApiPlaceBidPresenter`).
 *   **Book Ref:** Clean Architecture Chapter 23 (Presenters and Humble Objects).
+
+### Chapter 9: Reusable UI Authentication via FastAPI Dependencies
+*   **Concept:** DRY Security at the Route Level by abstracting authentication checks into reusable FastAPI `Depends()` functions.
+*   **Codebase Focus:** `src/web/dependencies.py`, `src/api/main.py`, and `src/web/router.py`.
+*   **Book Ref:** FastAPI Documentation (Dependencies).
